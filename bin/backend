@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "$project_dir"
+if [[ ! -x .venv/bin/python ]]; then
+  printf '%s\n' '{"event":"state","state":{"error":"Run uv sync in the Omarchy Bandcamp project first."}}'
+  exit 1
+fi
+exec .venv/bin/python -m bandcamp.backend

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")/.." && pwd)"
+if [[ ${1:-} == --standalone ]]; then
+  shift
+elif command -v omarchy-shell >/dev/null && [[ -e ${HOME}/.config/omarchy/plugins/its.bandcamp/manifest.json ]]; then
+  reply=$(omarchy-shell shell summon its.bandcamp '{}' 2>/dev/null) || reply=''
+  if [[ $reply == ok ]]; then
+    exit 0
+  fi
+fi
+if qs -p "$project_dir/shell.qml" ipc call bandcamp open >/dev/null 2>&1; then
+  exit 0
+fi
+exec qs -n -p "$project_dir/shell.qml" "$@"

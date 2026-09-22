@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "id": "its.bandcamp",
+  "name": "Omarchy Bandcamp",
+  "version": "0.1.0",
+  "author": "its",
+  "license": "MIT",
+  "description": "Your Bandcamp collection in a native player.",
+  "kinds": ["service", "bar-widget", "panel"],
+  "activation": "on-demand",
+  "keepLoaded": true,
+  "entryPoints": {
+    "service": "Service.qml",
+    "barWidget": "BarWidget.qml",
+    "panel": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "Bandcamp",
+    "description": "Collection player. Click for controls, right-click for your library.",
+    "category": "Media",
+    "aliases": ["bandcamp", "collection", "music"],
+    "allowMultiple": false,
+    "defaultSection": "left",
+    "defaults": {},
+    "schema": []
+  }
+}
