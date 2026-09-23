@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 DEFAULTS = dict(remember_login=True, bar_display='icon_title', bar_click='toggle_library',
                 mini_player_enabled=True, large_player_width=1000, large_player_height=760,
-                show_discover_links=True, stream_retries=2, metadata_enrichment=False, profile_url='', mini_player_width=460, mini_show_artwork=True)
+                show_discover_links=True, stream_retries=2, metadata_enrichment=False, profile_url='', mini_player_width=460, mini_show_artwork=True, wheel_scroll_pixels=360)
 
 class Config:
     def __init__(self, path=None):
@@ -27,7 +27,7 @@ class Config:
         if not isinstance(values, dict) or set(values) - set(DEFAULTS):
             raise ValueError('Unknown configuration option.')
         enums = {'bar_display': ('icon', 'title', 'icon_title'), 'bar_click': ('mini', 'library', 'toggle_library')}
-        ranges = {'large_player_width': (660, 3000), 'large_player_height': (620, 2000), 'stream_retries': (0, 5), 'mini_player_width': (440, 900)}
+        ranges = {'large_player_width': (660, 3000), 'large_player_height': (620, 2000), 'stream_retries': (0, 5), 'mini_player_width': (440, 900), 'wheel_scroll_pixels': (120, 1200)}
         for key, value in values.items():
             if key == 'profile_url':
                 parsed = urlsplit(value) if isinstance(value, str) else None

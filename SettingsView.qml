@@ -55,6 +55,10 @@ ScrollView {
             SpinBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.surface; palette.button: Qt.lighter(root.surface, 1.3); palette.window: root.surface; palette.highlight: root.accent; from: 620; to: 1600; stepSize: 50; value: root.config.large_player_height || 760; editable: true; onValueModified: root.configure('large_player_height', value) }
         }
         RowLayout {
+            Text { text: 'Mouse wheel pixels per notch'; color: root.foreground }
+            SpinBox { from: 120; to: 1200; stepSize: 60; value: root.config.wheel_scroll_pixels || 360; onValueModified: root.configure('wheel_scroll_pixels', value) }
+        }
+        RowLayout {
             Text { text: 'Stream retry attempts'; color: root.foreground }
             SpinBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.surface; palette.button: Qt.lighter(root.surface, 1.3); palette.window: root.surface; palette.highlight: root.accent; from: 0; to: 5; value: root.config.stream_retries === undefined ? 2 : root.config.stream_retries; onValueModified: root.configure('stream_retries', value) }
         }

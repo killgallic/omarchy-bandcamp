@@ -193,7 +193,7 @@ Rectangle {
                             }
                         }
                         ScrollBar.vertical: ScrollBar { id: collectionBar }
-                        ScrollAssist { id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
+                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
                         delegate: Item {
                             required property var modelData
                             width: grid.cellWidth; height: grid.cellHeight
@@ -231,7 +231,7 @@ Rectangle {
                     }
                     ListView {
                         id: albumTracks
-                        ScrollAssist { flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
+                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
                         Layout.fillWidth: true; Layout.fillHeight: true
                         clip: true; spacing: 2
                         model: root.album.song || []
@@ -251,7 +251,7 @@ Rectangle {
                 Item {
                     ListView {
                         id: queueTracks
-                        ScrollAssist { flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
+                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
                         anchors.fill: parent; clip: true; spacing: 2
                         model: root.state.queue || []
                         ScrollBar.vertical: ScrollBar {}

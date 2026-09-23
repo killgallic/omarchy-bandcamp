@@ -8,6 +8,7 @@ Item {
     anchors.fill: parent
     z: 10
     property bool scrolling: false
+    property real wheelStep: 360
     property real anchorY: 0
     property real pointerY: 0
     property color accent: '#81a1c1'
@@ -32,7 +33,7 @@ Item {
             root.stop()
             // Pixel deltas are trackpad motion; retain their native distance.
             if (event.pixelDelta.y) root.scrollBy(-event.pixelDelta.y)
-            else root.scrollBy(-event.angleDelta.y)
+            else root.scrollBy(-event.angleDelta.y / 120 * root.wheelStep)
             event.accepted = true
         }
     }

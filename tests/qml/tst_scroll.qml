@@ -26,7 +26,11 @@ TestCase {
         verify(!assist.scrolling)
         list.contentY = 200
         mouseWheel(list, 100, 100, 0, -120)
-        compare(list.contentY, 320)
+        compare(list.contentY, 560)
+        assist.wheelStep = 600
+        mouseWheel(list, 100, 100, 0, -120)
+        compare(list.contentY, 1160)
+        assist.wheelStep = 360
     }
     function test_middle_toggle_and_cancel() {
         mouseClick(list, 100, 100, Qt.MiddleButton)

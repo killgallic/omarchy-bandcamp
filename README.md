@@ -63,6 +63,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `large_player_width` | `1000` | Initial library width, 660–3000 |
 | `large_player_height` | `760` | Initial library height, 620–2000 |
 | `show_discover_links` | `true` | Bandcamp Discover and Daily links |
+| `wheel_scroll_pixels` | `360` | Mouse wheel travel per notch, 120–1200 |
 | `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
 | `metadata_enrichment` | `false` | Optional MusicBrainz tags |
 
@@ -72,7 +73,7 @@ Left-click the bar icon to open/minimize the library by default; right-click alw
 
 Filter by artist name, album text, Bandcamp genre, and optional enriched tags. Recently added uses Bandcamp's collection-added timestamps, not a guaranteed purchase date. Most played here/recently played track qualified listens in this app only (half a track or four minutes, whichever comes first). Local per-account history lives under `$XDG_STATE_HOME/omarchy-bandcamp`.
 
-Mouse wheel scrolls 120 pixels per notch. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
+Mouse wheel scrolls 360 pixels per notch by default, configurable from 120–1200 in Settings. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
 
 Add individual tracks or whole albums to the queue and remove queue entries. Playlists can be saved from the queue, appended to, renamed, reordered, and deleted (with confirmation). Playlist edits sync through Bandcamp's API and do not change the current queue.
 
