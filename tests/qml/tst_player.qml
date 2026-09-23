@@ -39,6 +39,31 @@ TestCase {
         service.state = original
         wait(30)
     }
+    function test_wheel_over_album_cards_keeps_speed_after_scrolling() {
+        const original = service.state
+        service.state = Object.assign({}, original, {albums: Array.from({length: 100}, (_, i) => ({id: String(i), name: 'Record ' + i, artist: 'Artist'}))})
+        player.page = 'collection'
+        wait(50)
+        const grid = findChild(player, 'collectionGrid')
+        const scroll = findChild(player, 'collectionScroll')
+        grid.contentY = 0
+        mouseWheel(grid, 70, 70, 0, -120)
+        compare(grid.contentY, 360)
+        scroll.resetWheel()
+        scroll.scrollBy(900 - grid.contentY)
+        mouseWheel(grid, 70, 70, 0, -120)
+        compare(grid.contentY, 1260)
+        service.state = original
+        wait(30)
+    }
+    function test_genres_sort_by_count_then_name() {
+        const original = service.state
+        service.state = Object.assign({}, original, {albums: [
+            {id:'1',genre:'Zebra'}, {id:'2',genre:'Zebra'}, {id:'3',genre:'Zebra'},
+            {id:'4',genre:'Ambient'}, {id:'5',genre:'Ambient'}, {id:'6',genre:'Blues'}]})
+        compare(player.genreOptions.map(o => o.value).join(','), 'Zebra,Ambient,Blues')
+        service.state = original
+    }
     function test_filters() {
         compare(player.records.length, 2)
         player.selectedArtists = ['A']; compare(player.records.length, 1)

@@ -42,7 +42,7 @@ Rectangle {
                 if (matches(a, kind)) counts[value]++
             }
         }
-        return Object.keys(counts).sort((a, b) => a.localeCompare(b)).map(value => ({value: value, label: value, count: counts[value]}))
+        return Object.keys(counts).sort((a, b) => (kind === 'Genre' ? counts[b] - counts[a] : 0) || a.localeCompare(b)).map(value => ({value: value, label: value, count: counts[value]}))
     }
     function removeFilter(kind, value) {
         if (kind === 'Artist') selectedArtists = selectedArtists.filter(v => v !== value)
@@ -231,7 +231,7 @@ Rectangle {
                             }
                         }
                         ScrollBar.vertical: ScrollBar { id: collectionBar }
-                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
+                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
                         delegate: Item {
                             required property var modelData
                             width: grid.cellWidth; height: grid.cellHeight
@@ -269,7 +269,7 @@ Rectangle {
                     }
                     ListView {
                         id: albumTracks
-                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
+                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
                         Layout.fillWidth: true; Layout.fillHeight: true
                         clip: true; spacing: 2
                         model: root.album.song || []
@@ -289,7 +289,7 @@ Rectangle {
                 Item {
                     ListView {
                         id: queueTracks
-                        ScrollAssist { wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
+                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
                         anchors.fill: parent; clip: true; spacing: 2
                         model: root.state.queue || []
                         ScrollBar.vertical: ScrollBar {}

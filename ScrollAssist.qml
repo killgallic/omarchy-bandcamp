@@ -9,6 +9,29 @@ Item {
     z: 10
     property bool scrolling: false
     property real wheelStep: 360
+    property bool wheelAcceleration: true
+    property real lastWheelTime: 0
+    property int lastWheelDirection: 0
+    property int wheelBurst: 0
+    function resetWheel() { lastWheelTime = 0; lastWheelDirection = 0; wheelBurst = 0 }
+    function mouseWheelDistance(angle, pixels, now) {
+        // Mouse wheels can supply both deltas: prefer their angle so the configured
+        // distance is not bypassed by the small pixel delta on high-resolution mice.
+        const base = angle ? -angle / 120 * wheelStep : -pixels * wheelStep / 120
+        if (!base) return 0
+        const direction = Math.sign(base)
+        const elapsed = now - lastWheelTime
+        if (!wheelAcceleration || direction !== lastWheelDirection || elapsed > 260 || elapsed < 0)
+            wheelBurst = 0
+        else if (elapsed <= 160)
+            wheelBurst = Math.min(5, wheelBurst + 1)
+        else
+            wheelBurst = Math.max(0, wheelBurst - 1)
+        lastWheelTime = now
+        lastWheelDirection = direction
+        const boost = wheelAcceleration ? Math.min(5, Math.pow(1.45, wheelBurst)) : 1
+        return direction * Math.min(wheelStep * 5, Math.abs(base) * boost)
+    }
     property real anchorY: 0
     property real pointerY: 0
     property color accent: '#81a1c1'
@@ -20,8 +43,8 @@ Item {
         flickable.contentY = Math.max(low, Math.min(high, flickable.contentY + delta))
         scrolled()
     }
-    onEnabledChanged: if (!enabled) stop()
-    onVisibleChanged: if (!visible) stop()
+    onEnabledChanged: if (!enabled) { stop(); resetWheel() }
+    onVisibleChanged: if (!visible) { stop(); resetWheel() }
     Connections {
         target: root.Window.window
         function onActiveChanged() { if (!root.Window.window.active) root.stop() }
@@ -31,9 +54,8 @@ Item {
         acceptedDevices: PointerDevice.Mouse
         onWheel: event => {
             root.stop()
-            // Pixel deltas are trackpad motion; retain their native distance.
-            if (event.pixelDelta.y) root.scrollBy(-event.pixelDelta.y)
-            else root.scrollBy(-event.angleDelta.y / 120 * root.wheelStep)
+            root.flickable.cancelFlick()
+            root.scrollBy(root.mouseWheelDistance(event.angleDelta.y, event.pixelDelta.y, Date.now()))
             event.accepted = true
         }
     }

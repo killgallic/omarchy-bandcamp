@@ -7,7 +7,7 @@ from urllib.parse import urlsplit
 
 DEFAULTS = dict(remember_login=True, bar_display='icon_title', bar_click='toggle_library',
                 mini_player_enabled=True, large_player_width=1000, large_player_height=760,
-                show_discover_links=True, stream_retries=2, metadata_enrichment=False, profile_url='', mini_player_width=460, mini_show_artwork=True, wheel_scroll_pixels=360)
+                show_discover_links=True, stream_retries=2, metadata_enrichment=False, profile_url='', mini_player_width=460, mini_show_artwork=True, wheel_scroll_pixels=360, wheel_acceleration=True)
 
 class Config:
     def __init__(self, path=None):

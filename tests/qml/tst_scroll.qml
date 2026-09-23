@@ -7,6 +7,7 @@ TestCase {
     Flickable { id: list; anchors.fill: parent; contentHeight: 2000
         ScrollAssist { id: assist; flickable: list }
     }
+    function init() { assist.resetWheel() }
     function test_bounds() {
         list.contentY = 0
         assist.scrollBy(-120)
@@ -24,13 +25,32 @@ TestCase {
         verify(list.contentY > 200)
         mouseWheel(list, 100, 220, 0, -120)
         verify(!assist.scrolling)
+        assist.resetWheel()
         list.contentY = 200
         mouseWheel(list, 100, 100, 0, -120)
         compare(list.contentY, 560)
+        assist.resetWheel()
         assist.wheelStep = 600
         mouseWheel(list, 100, 100, 0, -120)
         compare(list.contentY, 1160)
         assist.wheelStep = 360
+    }
+    function test_fast_wheel_accelerates_and_pause_or_reverse_resets() {
+        assist.resetWheel()
+        const first = assist.mouseWheelDistance(-120, -15, 1000)
+        const second = assist.mouseWheelDistance(-120, -15, 1080)
+        const third = assist.mouseWheelDistance(-120, -15, 1160)
+        compare(first, 360)
+        verify(second > first)
+        verify(third > second)
+        compare(assist.mouseWheelDistance(-120, -15, 1600), 360)
+        compare(assist.mouseWheelDistance(120, 15, 1650), -360)
+        for (let i = 0; i < 30; i++) verify(Math.abs(assist.mouseWheelDistance(120, 15, 1700 + i * 20)) <= 1800)
+        assist.wheelAcceleration = false
+        compare(assist.mouseWheelDistance(120, 15, 2400), -360)
+        compare(assist.mouseWheelDistance(120, 15, 2420), -360)
+        assist.wheelAcceleration = true
+        assist.resetWheel()
     }
     function test_middle_toggle_and_cancel() {
         mouseClick(list, 100, 100, Qt.MiddleButton)

@@ -63,6 +63,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `large_player_width` | `1000` | Initial library width, 660–3000 |
 | `large_player_height` | `760` | Initial library height, 620–2000 |
 | `show_discover_links` | `true` | Bandcamp Discover and Daily links |
+| `wheel_acceleration` | `true` | Accelerate rapid consecutive wheel turns, capped at 5× |
 | `wheel_scroll_pixels` | `360` | Mouse wheel travel per notch, 120–1200 |
 | `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
 | `metadata_enrichment` | `false` | Optional MusicBrainz tags |
@@ -73,7 +74,7 @@ Left-click the bar icon to open/minimize the library by default; right-click alw
 
 Search album/artist text and open Artist, Genre, or Tags filter buttons for searchable, scrollable multi-select lists with contextual record counts. Values within one category use OR; different categories combine with AND. Remove selections using their chips or Clear all. Sort has its own dropdown. Native Bandcamp genres and optional MusicBrainz tags remain distinct. Recently added uses Bandcamp's collection-added timestamps, not a guaranteed purchase date. Most played here/recently played track qualified listens in this app only (half a track or four minutes, whichever comes first). Local per-account history lives under `$XDG_STATE_HOME/omarchy-bandcamp`.
 
-Mouse wheel scrolls 360 pixels per notch by default, configurable from 120–1200 in Settings. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
+Mouse wheel starts at 360 pixels per notch, configurable from 120–1200 in Settings. Quick consecutive turns accelerate exponentially up to 5×; a pause or direction change resets the speed. Disable acceleration in Settings if preferred. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
 
 Add individual tracks or whole albums to the queue and remove queue entries. Playlists can be saved from the queue, appended to, renamed, reordered, and deleted (with confirmation). Playlist edits sync through Bandcamp's API and do not change the current queue.
 
