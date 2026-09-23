@@ -27,11 +27,14 @@ Ui.BarWidget {
     Row {
         id: content
         anchors.centerIn: parent
-        spacing: 7
-        BandcampIcon {
+        spacing: 9
+        Image {
             visible: root.vertical || root.config.bar_display !== 'title'
-            width: 22; height: 22
-            color: root.bar ? root.bar.foreground : Color.foreground
+            width: 28; height: 18
+            anchors.verticalCenter: parent.verticalCenter
+            source: 'assets/bandcamp.svg'
+            sourceSize: Qt.size(56, 36)
+            smooth: true
         }
         Text {
             id: label
