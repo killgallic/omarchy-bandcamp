@@ -47,3 +47,22 @@ class QueueTests(unittest.TestCase):
         self.q.set_shuffle(True)
         self.q.advance()
         self.assertEqual(self.q.previous()['id'], '0')
+
+class QueueRemovalTests(unittest.TestCase):
+    def test_remove_before_current_keeps_song_and_shuffle_indexes(self):
+        q = Queue()
+        q.replace([{'id': 'a'}, {'id': 'b'}, {'id': 'c'}], 1)
+        q.set_shuffle(True)
+        self.assertFalse(q.remove(0))
+        self.assertEqual(q.current['id'], 'b')
+        self.assertEqual(q.index, 0)
+        self.assertTrue(all(0 <= i < len(q.tracks) for i in q.remaining + q.history))
+
+    def test_remove_current_chooses_successor_then_empty(self):
+        q = Queue()
+        q.replace([{'id': 'a'}, {'id': 'b'}])
+        self.assertTrue(q.remove(0))
+        self.assertEqual(q.current['id'], 'b')
+        self.assertTrue(q.remove(0))
+        self.assertEqual(q.current, {})
+        self.assertEqual(q.index, -1)

@@ -68,3 +68,22 @@ class Queue:
         index = self.history.pop() if self.shuffle and self.history else max(0, self.index - 1)
         self.index = index
         return self.current
+
+    def remove(self, index):
+        if not 0 <= index < len(self.tracks):
+            raise ValueError('Track is no longer in the queue.')
+        current_removed = index == self.index
+        self.tracks.pop(index)
+        def adjusted(items):
+            return [i - 1 if i > index else i for i in items if i != index]
+        self.history = adjusted(self.history)
+        self.remaining = adjusted(self.remaining)
+        if not self.tracks:
+            self.index = -1
+        elif index < self.index:
+            self.index -= 1
+        elif current_removed:
+            self.index = min(index, len(self.tracks) - 1)
+            if self.index in self.remaining:
+                self.remaining.remove(self.index)
+        return current_removed

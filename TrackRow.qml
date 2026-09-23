@@ -5,6 +5,9 @@ import QtQuick.Layouts
 Button {
     id: root
     property var track: ({})
+    property string actionText: ''
+    signal actionClicked()
+    rightPadding: actionText ? 90 : 8
     property int number: 0
     property bool selected: false
     property color foreground: '#d8dee9'
@@ -13,6 +16,7 @@ Button {
     implicitHeight: 56
     Accessible.name: 'Play ' + (track.title || track.name || '')
     background: Rectangle { radius: 4; color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, root.selected ? 0.17 : root.hovered ? 0.08 : 0); border.width: root.activeFocus ? 1 : 0; border.color: root.accent }
+    ActionButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.rightMargin: 6; visible: !!root.actionText; text: root.actionText; foreground: root.foreground; accent: root.accent; onClicked: root.actionClicked() }
     contentItem: RowLayout {
         spacing: 12
         Text { Layout.preferredWidth: 28; text: root.selected ? '▶' : root.number; color: root.selected ? root.accent : root.muted; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 12 }

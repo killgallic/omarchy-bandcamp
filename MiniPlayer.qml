@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 
 Rectangle {
     id: root
@@ -17,6 +18,9 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.margins: 10
+            BandcampIcon { color: root.accent; width: 20; height: 20 }
+            BusyIndicator { Layout.preferredWidth: 18; Layout.preferredHeight: 18; running: root.service && root.service.state.loading; visible: running }
+            ActionButton { text: 'Retry'; visible: root.service && !!root.service.state.error; foreground: root.foreground; surface: root.background; accent: root.accent; implicitHeight: 30; onClicked: root.service.send('retry') }
             Text { Layout.fillWidth: true; text: 'bandcamp'; color: root.foreground; font.pixelSize: 16; font.bold: true; font.italic: true }
             ActionButton { text: root.service && root.service.state.connected ? 'Collection' : 'Sign in'; foreground: root.foreground; surface: root.background; accent: root.accent; implicitHeight: 30; onClicked: root.openRequested() }
             ActionButton { text: 'Quit'; foreground: root.foreground; surface: root.background; accent: root.accent; implicitHeight: 30; onClicked: root.quitRequested() }

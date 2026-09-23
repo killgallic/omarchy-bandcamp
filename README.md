@@ -43,6 +43,51 @@ Includes silent real mpv playback and an isolated D-Bus client test. Tests use l
 
 ## Scope
 
-This first version streams your collection; it does not yet download audio, edit Bandcamp playlists, or browse the public catalogue. Subsonic is a Bandcamp beta and large collections may load slowly. Refresh retries failed collection requests.
+The player streams your collection and manages Bandcamp playlists through Subsonic. Public discovery and editorial links open Bandcamp in your browser; collection playback stays native. Downloads are not implemented. Subsonic is a Bandcamp beta, so endpoint availability can vary.
+
+## Preferences and onboarding
+
+Login is remembered by default in the desktop keyring. Startup reconnects automatically without showing empty login fields. Uncheck Remember for a session-only login. An optional public profile URL in onboarding or Settings supplies your profile photo; Subsonic credentials do not expose your public handle.
+
+Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/omarchy-bandcamp/config.json`). It contains no passwords. Manual edits apply when the player restarts; UI changes apply immediately.
+
+| Key | Default | Behavior |
+| --- | --- | --- |
+| `remember_login` | `true` | Restore generated credentials from Secret Service |
+| `profile_url` | empty | Public `https://bandcamp.com/yourname` URL for cached avatar |
+| `bar_display` | `icon_title` | `icon`, `title`, or `icon_title` |
+| `bar_click` | `toggle_library` | Toggle/minimize library, `library`, or `mini` |
+| `mini_player_enabled` | `true` | Enable mini player (disabled falls back to library) |
+| `mini_player_width` | `460` | Width from 440–900 pixels |
+| `mini_show_artwork` | `true` | Artwork in compact controls |
+| `large_player_width` | `1000` | Initial library width, 660–3000 |
+| `large_player_height` | `760` | Initial library height, 620–2000 |
+| `show_discover_links` | `true` | Bandcamp Discover and Daily links |
+| `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
+| `metadata_enrichment` | `false` | Optional MusicBrainz tags |
+
+Left-click the bar icon to open/minimize the library by default; right-click always opens the library, middle-click toggles playback, and wheel skips tracks. Mini opens compact controls. Closing/minimizing keeps playback running; Quit ends the process.
+
+## Collection and playback
+
+Filter by artist name, album text, Bandcamp genre, and optional enriched tags. Recently added uses Bandcamp's collection-added timestamps, not a guaranteed purchase date. Most played here/recently played track qualified listens in this app only (half a track or four minutes, whichever comes first). Local per-account history lives under `$XDG_STATE_HOME/omarchy-bandcamp`.
+
+Mouse wheel scrolls 120 pixels per notch. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
+
+Add individual tracks or whole albums to the queue and remove queue entries. Playlists can be saved from the queue, appended to, renamed, reordered, and deleted (with confirmation). Playlist edits sync through Bandcamp's API and do not change the current queue.
+
+Stream failures retry with fresh signed URLs and bounded backoff. A toolbar spinner shows loading/buffering; a warning reveals errors and Retry reloads the selected track. Stop and newer playback actions cancel obsolete retries.
+
+## Optional metadata cache
+
+Enabling MusicBrainz sends artist and album names to its free public API. It needs no API key. Strict artist/title matching rejects ambiguous releases. Requests run serially, at most one per 1.05 seconds; rate-limit responses pause enrichment. Playback never depends on it.
+
+`~/.cache/omarchy-bandcamp/metadata.json` holds at most 1 MiB / 1,000 entries. Matches expire after 30 days; misses after 7. Cached tags remain available during service cooldowns. MusicBrainz tags are separate from Bandcamp genres; they are not claimed to be Bandcamp's full tag catalogue.
+
+## Verification
+
+`dbus-run-session -- env BANDCAMP_INTEGRATION=1 .venv/bin/python -m unittest discover -s tests -v` exercises API contracts, account/config behavior, queues, metadata cache, retry cancellation, and real silent mpv/MPRIS playback. Qt UI checks: `QT_QPA_PLATFORM=offscreen QT_QUICK_CONTROLS_STYLE=Basic QT_QPA_PLATFORMTHEME=generic /usr/lib/qt6/bin/qmltestrunner -input tests/qml`.
+
+Live read-only probes verified collection metadata, playlist listing, POST support, public profile photo, and automatic stream transition. Playlist writes use mocked contract tests, not changes to an actual user's playlists.
 
 Research: [Bandcamp announcement](https://blog.bandcamp.com/2026/07/16/discover-improvements-and-subsonic-implementation/), [Nocturne's Subsonic adapter](https://github.com/Jeffser/Nocturne/blob/main/src/integrations/navidrome.py), [Omarchy Spotify](https://github.com/stappmus/Omarchy-Spotify), [Subsonic protocol](https://www.subsonic.org/pages/api.jsp). Original implementation; unofficial and unaffiliated with Bandcamp.

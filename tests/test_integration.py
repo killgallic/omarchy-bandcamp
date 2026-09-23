@@ -53,6 +53,12 @@ class IntegrationTests(unittest.IsolatedAsyncioTestCase):
         await self.until(lambda: self.app.state['playing'])
         self.assertEqual(self.app.state['error'], '')
 
+    async def test_real_eof_advances_without_manual_next(self):
+        await self.app.play_current()
+        await self.until(lambda: self.app.state['playing'])
+        await self.until(lambda: self.app.state['current']['id'] == '2' and self.app.state['playing'])
+        self.assertEqual(self.app.state['error'], '')
+
     async def test_dbus_client_can_read_metadata_and_pause(self):
         self.app.mpris = await Mpris.connect(self.app)
         await self.app.play_current()

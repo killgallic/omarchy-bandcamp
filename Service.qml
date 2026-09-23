@@ -10,11 +10,14 @@ Item {
     property var pluginRegistry: null
     readonly property string directory: manifest && manifest.__sourceDir
         ? String(manifest.__sourceDir) : decodeURIComponent(Qt.resolvedUrl('.').toString().replace(/^file:\/\//, '')).replace(/\/$/, '')
-    property var state: ({connected: false, busy: false, error: '', albums: [], album: null,
+    property var state: ({starting: true, config: {}, connected: false, busy: false, error: '', albums: [], album: null,
         queue: [], index: -1, playing: false, position: 0, duration: 0, volume: 75,
         shuffle: false, repeat: 'none', current: null})
     property string processError: ''
     property bool quitting: false
+    property bool libraryVisible: false
+    signal libraryToggleRequested()
+    signal miniRequested()
     signal raiseRequested()
     signal stopped()
     function start() {

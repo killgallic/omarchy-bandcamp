@@ -11,6 +11,7 @@ ShellRoot {
     Service {
         id: player
         onRaiseRequested: root.expanded = true
+        onStateChanged: if (state.config.mini_player_enabled === false) root.expanded = true
         onStopped: if (root.exiting) Qt.quit()
     }
     Timer { id: shutdown; interval: 2000; onTriggered: Qt.quit() }
@@ -24,7 +25,7 @@ ShellRoot {
         id: library
         title: 'Bandcamp — Collection'
         visible: root.expanded && !root.exiting
-        implicitWidth: 1000; implicitHeight: 760
+        implicitWidth: player.state.config.large_player_width || 1000; implicitHeight: player.state.config.large_player_height || 760
         minimumSize: Qt.size(660, 620)
         color: theme.background
         onVisibleChanged: if (!visible && root.expanded && !root.exiting) root.expanded = false
@@ -33,7 +34,7 @@ ShellRoot {
             service: player
             foreground: theme.foreground; background: theme.background; accent: theme.accent; muted: theme.muted
             fontFamily: theme.fontFamily
-            onMinimizeRequested: root.expanded = false
+            onMinimizeRequested: if (player.state.config.mini_player_enabled !== false) root.expanded = false
             onQuitRequested: root.quitPlayer()
         }
     }
@@ -41,9 +42,9 @@ ShellRoot {
         id: mini
         title: 'Bandcamp — Now playing'
         visible: !root.expanded && !root.exiting
-        implicitWidth: 460; implicitHeight: 236
+        implicitWidth: player.state.config.mini_player_width || 460; implicitHeight: 236
         minimumSize: Qt.size(440, 236)
-        maximumSize: Qt.size(650, 236)
+        maximumSize: Qt.size(900, 236)
         color: theme.background
         // Closing the mini returns to the library so the process remains reachable.
         onVisibleChanged: if (!visible && !root.expanded && !root.exiting) root.expanded = true

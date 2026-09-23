@@ -28,7 +28,7 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             spacing: 12
-            Artwork { Layout.preferredWidth: 44; Layout.preferredHeight: 44; source: root.current.art || ''; foreground: root.foreground }
+            Artwork { visible: !root.compact || (root.state.config || {}).mini_show_artwork !== false; Layout.preferredWidth: 44; Layout.preferredHeight: 44; source: root.current.art || ''; foreground: root.foreground }
             ColumnLayout {
                 Layout.fillWidth: true
                 spacing: 3

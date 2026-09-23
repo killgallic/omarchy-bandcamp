@@ -15,10 +15,23 @@ class Mpv:
         self.pending = {}
         self.serial = 0
         self.directory = None
+        self.lifecycle_lock = asyncio.Lock()
 
     async def start(self):
-        if self.process and self.process.returncode is None:
-            return
+        async with self.lifecycle_lock:
+            if (self.process and self.process.returncode is None and self.writer
+                    and not self.writer.is_closing() and self.reader_task
+                    and not self.reader_task.done()):
+                return
+            if self.process or self.writer or self.directory:
+                await self._close()
+            try:
+                await self._start()
+            except BaseException:
+                await self._close()
+                raise
+
+    async def _start(self):
         self.directory = tempfile.TemporaryDirectory(prefix='omarchy-bandcamp-')
         socket = str(Path(self.directory.name) / 'mpv.sock')
         self.process = await asyncio.create_subprocess_exec(
@@ -36,10 +49,9 @@ class Mpv:
             except (FileNotFoundError, ConnectionRefusedError):
                 await asyncio.sleep(.05)
         else:
-            await self.close()
             raise RuntimeError('The audio player did not become ready.')
         self.reader_task = asyncio.create_task(self.read_events(reader))
-        for index, prop in enumerate(('time-pos', 'duration', 'pause', 'volume', 'idle-active')):
+        for index, prop in enumerate(('time-pos', 'duration', 'pause', 'volume', 'idle-active', 'paused-for-cache')):
             await self.command('observe_property', index, prop)
 
     async def read_events(self, reader):
@@ -76,15 +88,25 @@ class Mpv:
             self.pending.pop(serial, None)
 
     async def close(self):
+        async with self.lifecycle_lock:
+            await self._close()
+
+    async def _close(self):
         if self.writer:
             self.writer.close()
             self.writer = None
         if self.process and self.process.returncode is None:
-            self.process.terminate()
+            try:
+                self.process.terminate()
+            except ProcessLookupError:
+                pass
             try:
                 await asyncio.wait_for(self.process.wait(), 3)
             except asyncio.TimeoutError:
-                self.process.kill()
+                try:
+                    self.process.kill()
+                except ProcessLookupError:
+                    pass
                 await self.process.wait()
         if self.reader_task:
             self.reader_task.cancel()
@@ -92,3 +114,5 @@ class Mpv:
             self.reader_task = None
         if self.directory:
             self.directory.cleanup()
+            self.directory = None
+        self.process = None
