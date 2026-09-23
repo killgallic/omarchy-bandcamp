@@ -13,14 +13,42 @@ Rectangle {
     property bool showErrors: false
     property string page: 'collection'
     property string filter: ''
-    property string artistFilter: ''
-    property string genreFilter: ''
-    property string tagFilter: ''
-    readonly property var artists: ['All artists'].concat(Array.from(new Set((state.albums || []).map(a => a.artist || '').filter(Boolean))).sort())
-    readonly property var genres: ['All genres'].concat(Array.from(new Set((state.albums || []).map(a => a.genre || '').filter(Boolean))).sort())
+    property var selectedArtists: []
+    property var selectedGenres: []
+    property var selectedTags: []
     readonly property var state: service ? service.state : ({})
+    readonly property var libraryAlbums: state.albums || []
     readonly property var album: state.album || ({})
-    readonly property var records: (state.albums || []).filter(a => ((a.name || a.title || '') + ' ' + (a.artist || '')).toLowerCase().indexOf(filter.toLowerCase()) >= 0 && (!artistFilter || a.artist === artistFilter) && (!genreFilter || a.genre === genreFilter) && (!tagFilter || (a.tags || []).join(' ').toLowerCase().indexOf(tagFilter.toLowerCase()) >= 0))
+    readonly property var records: libraryAlbums.filter(a => matches(a, ''))
+    readonly property var artistOptions: facetOptions('Artist')
+    readonly property var genreOptions: facetOptions('Genre')
+    readonly property var tagOptions: facetOptions('Tags')
+    readonly property var activeFilters: selectedArtists.map(v => ({kind: 'Artist', value: v})).concat(selectedGenres.map(v => ({kind: 'Genre', value: v})), selectedTags.map(v => ({kind: 'Tags', value: v})))
+    readonly property var sortOptions: [{value:'artist',label:'Artist A–Z'}, {value:'album',label:'Album A–Z'}, {value:'newest',label:'Recently added'}, {value:'most_played',label:'Most played here'}, {value:'recent_played',label:'Recently played here'}]
+    function valuesFor(a, kind) { return kind === 'Artist' ? [a.artist || ''] : kind === 'Genre' ? [a.genre || ''] : (a.tags || []) }
+    function matches(a, skip) {
+        const text = ((a.name || a.title || '') + ' ' + (a.artist || '')).toLowerCase()
+        return text.indexOf(filter.toLowerCase()) >= 0
+            && (skip === 'Artist' || !selectedArtists.length || selectedArtists.indexOf(a.artist) >= 0)
+            && (skip === 'Genre' || !selectedGenres.length || selectedGenres.indexOf(a.genre) >= 0)
+            && (skip === 'Tags' || !selectedTags.length || (a.tags || []).some(t => selectedTags.indexOf(t) >= 0))
+    }
+    function facetOptions(kind) {
+        const counts = Object.create(null)
+        for (const a of libraryAlbums) {
+            for (const value of valuesFor(a, kind)) {
+                if (!value) continue
+                if (counts[value] === undefined) counts[value] = 0
+                if (matches(a, kind)) counts[value]++
+            }
+        }
+        return Object.keys(counts).sort((a, b) => a.localeCompare(b)).map(value => ({value: value, label: value, count: counts[value]}))
+    }
+    function removeFilter(kind, value) {
+        if (kind === 'Artist') selectedArtists = selectedArtists.filter(v => v !== value)
+        else if (kind === 'Genre') selectedGenres = selectedGenres.filter(v => v !== value)
+        else selectedTags = selectedTags.filter(v => v !== value)
+    }
     signal minimizeRequested()
     signal quitRequested()
     color: background
@@ -137,19 +165,28 @@ Rectangle {
                 ColumnLayout {
                     spacing: 4
                     Copy { text: 'The collection'; font.pixelSize: 27; font.bold: true }
-                    Copy { text: (root.state.albums || []).length + ' records, yours to play'; color: root.muted; font.pixelSize: 12 }
+                    Copy { text: root.records.length + ' of ' + root.libraryAlbums.length + ' records'; color: root.muted; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
                 Field { id: search; Layout.preferredWidth: Math.min(300, root.width * 0.35); placeholderText: 'Filter artist or album'; Accessible.name: 'Filter collection'; onTextChanged: root.filter = text }
             }
             RowLayout {
-                visible: root.page === 'collection'; Layout.fillWidth: true
-                ComboBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.background; palette.button: Qt.lighter(root.background, 1.3); palette.window: root.background; palette.highlight: root.accent; id: artistSelector; Layout.fillWidth: true; model: root.artists; editable: true; selectTextByMouse: true; Accessible.name: 'Search artists'; onActivated: root.artistFilter = currentIndex === 0 ? '' : currentText; onAccepted: root.artistFilter = editText === 'All artists' ? '' : editText }
-                ComboBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.background; palette.button: Qt.lighter(root.background, 1.3); palette.window: root.background; palette.highlight: root.accent; id: genreSelector; Layout.fillWidth: true; model: root.genres; Accessible.name: 'Genres'; onActivated: root.genreFilter = currentIndex === 0 ? '' : currentText }
-                ComboBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.background; palette.button: Qt.lighter(root.background, 1.3); palette.window: root.background; palette.highlight: root.accent; model: ['Artist', 'Album', 'Recently added', 'Most played here', 'Recently played here']; Accessible.name: 'Collection order'; onActivated: root.service.send('collection_order', {order: ['artist', 'album', 'newest', 'most_played', 'recent_played'][currentIndex]}) }
-                Action { text: 'Reset'; onClicked: { root.artistFilter = ''; root.genreFilter = ''; tags.clear(); artistSelector.currentIndex = 0; genreSelector.currentIndex = 0; search.clear() } }
+                visible: root.page === 'collection'; Layout.fillWidth: true; spacing: 8
+                FilterDropdown { title: 'Artist'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent }
+                FilterDropdown { title: 'Genre'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent }
+                FilterDropdown { title: 'Tags'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
+                Item { Layout.fillWidth: true }
+                FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent }
+                Action { text: 'Clear all'; visible: root.activeFilters.length > 0 || !!root.filter; onClicked: { root.selectedArtists = []; root.selectedGenres = []; root.selectedTags = []; search.clear() } }
             }
-            Field { id: tags; visible: root.page === 'collection' && (root.state.config || {}).metadata_enrichment === true; Layout.fillWidth: true; placeholderText: 'Filter enriched tags'; onTextChanged: root.tagFilter = text }
+            Flow {
+                visible: root.page === 'collection' && root.activeFilters.length > 0
+                Layout.fillWidth: true; Layout.preferredHeight: childrenRect.height; spacing: 6
+                Repeater {
+                    model: root.activeFilters
+                    Action { required property var modelData; text: modelData.kind + ': ' + modelData.value + '  ×'; width: Math.min(implicitWidth, root.width - 48); implicitHeight: 30; Accessible.name: 'Remove ' + modelData.kind + ' ' + modelData.value; onClicked: root.removeFilter(modelData.kind, modelData.value) }
+                }
+            }
             Copy { visible: root.page === 'collection'; text: root.state.metadataNotice || root.state.collectionNotice || 'Wheel to scroll · Middle-click, then move the pointer to autoscroll'; color: root.muted; font.pixelSize: 11 }
             StackLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true
@@ -180,7 +217,8 @@ Rectangle {
                             restorePosition()
                         }
                         Timer { id: restoreTimer; interval: 16; onTriggered: grid.restorePosition() }
-                        onContentYChanged: if (!restoring && root.page === 'collection' && (moving || collectionBar.pressed || collectionScroll.scrolling)) savedOffset = Math.max(0, contentY - originY)
+                        onHeightChanged: if (root.page === 'collection') { restoring = true; restoreTimer.restart() }
+                        onContentYChanged: if (!restoring && root.page === 'collection' && (dragging || flicking || collectionBar.pressed || collectionScroll.scrolling)) savedOffset = Math.max(0, contentY - originY)
                         Component.onCompleted: updateRecords()
                         Connections {
                             target: root
@@ -212,7 +250,7 @@ Rectangle {
                             }
                         }
                     }
-                    Copy { anchors.centerIn: parent; visible: root.records.length === 0; text: root.state.busy ? 'Loading your records…' : root.filter ? 'No records match this filter.' : 'No albums found. Refresh to try again.'; color: root.muted }
+                    Copy { anchors.centerIn: parent; visible: root.records.length === 0; text: root.state.busy ? 'Loading your records…' : root.filter || root.activeFilters.length ? 'No records match. Remove a filter or clear all.' : 'No albums found. Refresh to try again.'; color: root.muted }
                 }
                 ColumnLayout {
                     spacing: 18

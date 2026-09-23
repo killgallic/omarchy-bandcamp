@@ -27,13 +27,13 @@ Ui.BarWidget {
     Row {
         id: content
         anchors.centerIn: parent
-        spacing: 9
+        spacing: 7
         Image {
             visible: root.vertical || root.config.bar_display !== 'title'
-            width: 28; height: 18
+            width: 18; height: 12
             anchors.verticalCenter: parent.verticalCenter
             source: 'assets/bandcamp.svg'
-            sourceSize: Qt.size(56, 36)
+            sourceSize: Qt.size(54, 36)
             smooth: true
         }
         Text {

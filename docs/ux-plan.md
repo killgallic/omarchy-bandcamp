@@ -33,3 +33,10 @@ Remember login defaults on and uses Secret Service; startup shows reconnecting u
 Playback now has bounded fresh-URL retries, timeout feedback and cancellation when stopped or superseded. Single-track enqueue and queue removal are supported. Local and live silent automatic-next probes passed; the originally reported intermittent failure was not reproduced. Regression tests found and fixed Stop racing pending stream setup and overlapping mpv starts.
 
 MusicBrainz enrichment is opt-in, serial and rate-limited, with strict artist/title matching and a bounded on-disk cache (1 MiB/1,000 entries; 30-day positives/7-day misses). Cached tags remain usable during API cooldown. Native Bandcamp genres and collection-added dates retain their actual provenance. No live playlist writes occurred in development.
+
+
+## Filter revision inspired by Waxlog
+
+Reference: https://www.waxlog.com/ and its published filtering screenshot. Adopt compact dropdown buttons, stackable choices and removable active chips. For a native Bandcamp collection use Artist, Genre, optional MusicBrainz Tags and a separate Sort control; omit vinyl-specific pressing/format filters not supplied by this API. Options are searchable, multi-select, show contextual counts and remain open while selecting. OR within a category, AND across categories. Each popup owns a clipped, bounded ListView with visible scrollbar, wheel handling and keyboard selection. Explicit Popup.Item avoids platform ComboBox popup behavior. Test long lists, search, multi-select, keyboard/Escape, intersection/counts, and preserving collection scroll after layout changes.
+
+Bar icon revised to 18×12 pixels to match neighboring desktop icons.

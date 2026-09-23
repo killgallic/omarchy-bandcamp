@@ -27,7 +27,7 @@ TestCase {
         wait(30)
         player.page = 'collection'
         wait(30)
-        fuzzyCompare(grid.contentY, nearBottom, 0.01)
+        tryVerify(() => Math.abs(grid.contentY - nearBottom) < 0.01, 1000)
         service.state = Object.assign({}, service.state, {albums: records.slice().reverse()})
         wait(30)
         compare(grid.contentY, grid.originY)
@@ -41,11 +41,16 @@ TestCase {
     }
     function test_filters() {
         compare(player.records.length, 2)
-        player.artistFilter = 'A'; compare(player.records.length, 1)
-        player.genreFilter = 'Jazz'; compare(player.records.length, 0)
-        player.artistFilter = ''; compare(player.records[0].id, '2')
-        player.genreFilter = ''; player.filter = 'one'; compare(player.records[0].id, '1')
+        player.selectedArtists = ['A']; compare(player.records.length, 1)
+        player.selectedGenres = ['Jazz']; compare(player.records.length, 0)
+        player.selectedArtists = []; compare(player.records[0].id, '2')
+        player.selectedGenres = []; player.filter = 'one'; compare(player.records[0].id, '1')
         player.filter = ''
+        player.selectedGenres = ['House', 'Jazz']; compare(player.records.length, 2)
+        player.selectedArtists = ['A']; compare(player.records.length, 1)
+        compare(player.genreOptions.find(o => o.value === 'Jazz').count, 0)
+        player.removeFilter('Artist', 'A'); compare(player.records.length, 2)
+        player.selectedGenres = []
     }
     function test_login_retains_password_on_rejection() {
         service.state = Object.assign({}, service.state, {connected: false})
