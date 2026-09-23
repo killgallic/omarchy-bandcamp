@@ -285,9 +285,11 @@ Publishing the first public code/release and sending the upstream submission are
 
 Files: ScrollAssist.qml, PlayerView.qml, PlaylistView.qml, SettingsView.qml, bandcamp/config.py, tests/qml/tst_scroll.qml, tests/qml/tst_player.qml.
 
-- [ ] Commit genre frequency ordering and exponential scrolling separately from this larger plan.
-- [ ] Run the existing QtTest suite and config tests; confirm mixed angle/pixel input, fast bursts, pause/reversal, real album cards, and near-bottom restoration.
-- [ ] Deploy to the local plugin and reopen it; verify the new process/window. Record that this is a targeted fix, not completion of the roadmap.
+- [x] Commit genre frequency ordering and exponential scrolling separately from this larger plan.
+- [x] Run the existing QtTest suite and config tests; confirm mixed angle/pixel input, fast bursts, pause/reversal, real album cards, and near-bottom restoration.
+- [x] Deploy to the local plugin and reopen it; verify the new process/window. Record that this is a targeted fix, not completion of the roadmap.
+
+Completed in local commit `8c39504`: 18 Qt UI checks and 3 config tests passed. Installed and reopened; the Bandcamp window was confirmed mapped. No remote publication occurred.
 
 ### Milestone 1 — Settings migration, notifications and lifecycle
 
