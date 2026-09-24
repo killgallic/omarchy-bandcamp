@@ -316,6 +316,7 @@ class App:
                     albums = cached['albums']
                 else:
                     albums = await asyncio.to_thread(api.albums)
+                albums = await asyncio.to_thread(self.cached_artwork, username, albums)
                 self.generation += 1
                 self.cancel_loading()
                 self.api = api
@@ -350,6 +351,7 @@ class App:
                     raise APIError('Sign in to load your collection.', auth=True)
                 if cmd == 'refresh':
                     albums = await asyncio.to_thread(self.api.albums)
+                    albums = await asyncio.to_thread(self.cached_artwork, self.api.username, albums)
                     self.emit(albums=[public_item(a) for a in albums])
                     self.sort_collection()
                     self.task(asyncio.to_thread(LibraryCache().save, self.api.username, albums))
@@ -386,12 +388,25 @@ class App:
         finally:
             self.emit(busy=False)
 
+    def artwork_path(self, username, cover_id):
+        cache = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'omarchy-bandcamp'
+        name = hashlib.sha256((username + ':' + str(cover_id)).encode()).hexdigest() + '.img'
+        return cache / name
+
+    def cached_artwork(self, username, albums):
+        for album in albums:
+            cover_id = album.get('coverArt')
+            if cover_id and not album.get('art'):
+                path = self.artwork_path(username, cover_id)
+                if path.is_file():
+                    album['art'] = path.as_uri()
+        return albums
+
     async def artwork(self, api, cover_id):
         if not cover_id:
             return ''
-        cache = Path(os.environ.get('XDG_CACHE_HOME', Path.home() / '.cache')) / 'omarchy-bandcamp'
-        name = hashlib.sha256((api.username + ':' + str(cover_id)).encode()).hexdigest() + '.img'
-        path = cache / name
+        path = self.artwork_path(api.username, cover_id)
+        cache = path.parent
         def fetch():
             cache.mkdir(mode=0o700, parents=True, exist_ok=True)
             if not path.exists():
@@ -411,7 +426,7 @@ class App:
             return ''
 
     async def load_artwork(self, api, generation):
-        albums = [dict(a) for a in self.state['albums']]
+        albums = [dict(a) for a in self.state['albums'] if a.get('coverArt') and not a.get('art')]
         for start in range(0, len(albums), 8):
             if generation != self.generation:
                 return
@@ -690,14 +705,25 @@ class App:
             if self.metadata_cache is None:
                 self.metadata_cache = MetadataCache()
             self.emit(metadataBusy=mode != 'cached', metadataJob={'status':'running' if mode != 'cached' else 'cached', 'total':len(self.state['albums']), 'processed':0})
+            pending_tags = {}
+            def flush_tags():
+                if generation != self.generation or not pending_tags:
+                    return
+                updates = pending_tags.copy()
+                pending_tags.clear()
+                self.emit(albums=[{**a, 'tags': updates[str(a['id'])]} if str(a['id']) in updates else a for a in self.state['albums']],
+                          tagSource='Bandcamp genres + MusicBrainz tags')
             def progress(result):
                 if generation == self.generation and (result['processed'] % 10 == 0 or result['processed'] == result['total']):
+                    if mode != 'cached':
+                        flush_tags()
                     self.emit(metadataJob={'status':'running' if mode != 'cached' else 'cached', **result})
             def patch(album_id, tags):
                 if generation == self.generation:
-                    self.emit(albums=[{**a, 'tags': tags} if str(a['id']) == str(album_id) else a for a in self.state['albums']], tagSource='Bandcamp genres + MusicBrainz tags')
+                    pending_tags[str(album_id)] = tags
             try:
                 result = await self.metadata_cache.enrich(self.state['albums'], lambda: self.config.values['metadata_enrichment'] and generation == self.generation, patch, on_progress=progress, cached_only=mode == 'cached', force=mode == 'all')
+                flush_tags()
                 self.emit(metadataNotice=result.get('notice', ''), metadataJob={'status':'complete', **result, 'lastCompletedAt':int(time.time())})
             except (OSError, ValueError):
                 self.emit(metadataNotice='Metadata enrichment is unavailable; your collection still works.')

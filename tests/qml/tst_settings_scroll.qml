@@ -16,7 +16,6 @@ TestCase {
         verify(flickable.contentHeight > flickable.height + 300)
         flickable.contentY = 0
         mouseWheel(flickable, 120, 180, 0, -120)
-        wait(150)
-        compare(flickable.contentY, Math.min(1200, flickable.contentHeight - flickable.height))
+        tryCompare(flickable, 'contentY', Math.min(1200, flickable.contentHeight - flickable.height), 1000)
     }
 }

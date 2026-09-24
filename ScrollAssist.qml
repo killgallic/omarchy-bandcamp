@@ -8,8 +8,12 @@ Item {
     anchors.fill: parent
     z: 10
     property bool scrolling: false
-    property real wheelStep: 360
-    property bool wheelAcceleration: true
+    property var config: ({})
+    property real wheelStep: config.wheel_scroll_pixels || 360
+    property bool wheelAcceleration: config.wheel_acceleration !== false
+    property bool reducedMotion: config.reduced_motion === true
+    property real wheelTarget: 0
+    property int wheelTargetDirection: 0
     property real lastWheelTime: 0
     property int lastWheelDirection: 0
     property int wheelBurst: 0
@@ -18,7 +22,12 @@ Item {
         // distinguish a smooth gesture, which should keep native scrolling.
         return deviceType !== PointerDevice.TouchPad || pixels === 0
     }
-    function resetWheel() { lastWheelTime = 0; lastWheelDirection = 0; wheelBurst = 0 }
+    function resetWheel() {
+        wheelMotion.stop()
+        wheelTarget = flickable.contentY
+        wheelTargetDirection = 0
+        lastWheelTime = 0; lastWheelDirection = 0; wheelBurst = 0
+    }
     function mouseWheelDistance(angle, pixels, now) {
         // Mouse wheels can supply both deltas: prefer their angle so the configured
         // distance is not bypassed by the small pixel delta on high-resolution mice.
@@ -47,14 +56,48 @@ Item {
     signal scrolled()
     function stop() { scrolling = false }
     function scrollBy(delta) {
+        wheelMotion.stop()
         const low = flickable.originY
         const high = low + Math.max(0, flickable.contentHeight - flickable.height)
         flickable.contentY = Math.max(low, Math.min(high, flickable.contentY + delta))
+        wheelTarget = flickable.contentY
+        wheelTargetDirection = 0
         scrolled()
+    }
+    function scrollWheel(delta) {
+        if (!delta) return
+        if (reducedMotion) { scrollBy(delta); return }
+        const low = flickable.originY
+        const high = low + Math.max(0, flickable.contentHeight - flickable.height)
+        const direction = Math.sign(delta)
+        const base = wheelMotion.running && direction === wheelTargetDirection ? wheelTarget : flickable.contentY
+        wheelTarget = Math.max(low, Math.min(high, base + delta))
+        wheelTargetDirection = direction
+        wheelMotion.stop()
+        if (wheelTarget === flickable.contentY) return
+        wheelMotion.from = flickable.contentY
+        wheelMotion.to = wheelTarget
+        wheelMotion.duration = Math.min(300, 150 + Math.abs(wheelTarget - flickable.contentY) / 10)
+        wheelMotion.start()
     }
     onEnabledChanged: if (!enabled) { stop(); resetWheel() }
     onVisibleChanged: if (!visible) { stop(); resetWheel() }
     Shortcut { sequence: 'Escape'; enabled: root.scrolling; onActivated: root.stop() }
+    NumberAnimation {
+        id: wheelMotion
+        objectName: 'wheelMotion'
+        target: root.flickable
+        property: 'contentY'
+        easing.type: Easing.OutCubic
+    }
+    Connections {
+        target: root.flickable
+        function onContentYChanged() { if (wheelMotion.running) root.scrolled() }
+        function onContentHeightChanged() {
+            const high = root.flickable.originY + Math.max(0, root.flickable.contentHeight - root.flickable.height)
+            if (wheelMotion.running && wheelTarget > high) root.resetWheel()
+        }
+    }
     WheelHandler {
         objectName: 'discreteWheelHandler'
         acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
@@ -65,7 +108,7 @@ Item {
                 return
             }
             root.flickable.cancelFlick()
-            root.scrollBy(root.mouseWheelDistance(event.angleDelta.y, event.pixelDelta.y, Date.now()))
+            root.scrollWheel(root.mouseWheelDistance(event.angleDelta.y, event.pixelDelta.y, Date.now()))
             event.accepted = true
         }
     }
@@ -78,6 +121,7 @@ Item {
         onPressed: mouse => {
             if (root.scrolling) root.stop()
             else if (mouse.button === Qt.MiddleButton) {
+                wheelMotion.stop()
                 root.flickable.cancelFlick()
                 root.anchorY = mouse.y; root.pointerY = mouse.y
                 root.scrolling = true

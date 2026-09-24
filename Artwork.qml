@@ -19,7 +19,7 @@ Rectangle {
     Image {
         anchors.fill: parent
         source: root.source
-        asynchronous: true
+        asynchronous: !root.source.startsWith('file:')
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(Math.min(600, root.width * 2), Math.min(600, root.height * 2))
     }

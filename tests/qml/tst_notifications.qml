@@ -127,7 +127,7 @@ TestCase {
         verify(flickable.contentHeight > flickable.height + 300)
         flickable.contentY = 0
         mouseWheel(flickable, 80, 80, 0, -120)
-        compare(flickable.contentY, Math.min(1200, flickable.contentHeight - flickable.height))
+        tryCompare(flickable, 'contentY', Math.min(1200, flickable.contentHeight - flickable.height), 1000)
         popup.close()
     }
 

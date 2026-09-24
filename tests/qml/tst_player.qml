@@ -73,11 +73,11 @@ TestCase {
         const scroll = findChild(player, 'collectionScroll')
         grid.contentY = 0
         mouseWheel(grid, 70, 70, 0, -120)
-        compare(grid.contentY, 360)
+        tryCompare(grid, 'contentY', 360, 1000)
         scroll.resetWheel()
         scroll.scrollBy(900 - grid.contentY)
         mouseWheel(grid, 70, 70, 0, -120)
-        compare(grid.contentY, 1260)
+        tryCompare(grid, 'contentY', 1260, 1000)
         service.state = original
         wait(30)
     }
@@ -86,8 +86,9 @@ TestCase {
         service.state = Object.assign({}, original, {config:{wheel_scroll_pixels:1200,wheel_acceleration:true}})
         player.page = 'collection'
         compare(findChild(player, 'collectionScroll').wheelStep, 1200)
-        service.state = Object.assign({}, service.state, {config:{wheel_scroll_pixels:720,wheel_acceleration:false}})
+        service.state = Object.assign({}, service.state, {config:{wheel_scroll_pixels:720,wheel_acceleration:false,reduced_motion:true}})
         compare(findChild(player, 'collectionScroll').wheelStep, 720)
+        compare(findChild(player, 'collectionScroll').reducedMotion, true)
         service.state = original
     }
     function test_genres_sort_by_count_then_name() {

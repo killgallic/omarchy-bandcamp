@@ -15,10 +15,10 @@ TestCase {
     HomeView { id: home; anchors.fill: parent; service: service; foreground:'white'; surface:'#111111'; accent:'#55bbee'; muted:'#888888' }
     function test_wheel_speed_applies_on_home() {
         const flickable = home.contentItem
+        compare(findChild(home, 'homeScroll').reducedMotion, false)
         verify(flickable.contentHeight > flickable.height + 1200)
         flickable.contentY = 0
         mouseWheel(flickable, 120, 180, 0, -120)
-        wait(150)
-        compare(flickable.contentY, 1200)
+        tryCompare(flickable, 'contentY', 1200, 1000)
     }
 }

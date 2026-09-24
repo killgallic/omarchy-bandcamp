@@ -195,11 +195,11 @@ Rectangle {
             }
             RowLayout {
                 visible: root.page === 'collection'; Layout.fillWidth: true; spacing: 8
-                FilterDropdown { title: 'Artist'; sortMode: 'alpha_asc'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
-                FilterDropdown { title: 'Genre'; sortMode: 'count_desc'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
-                FilterDropdown { title: 'Tags'; sortMode: 'alpha_asc'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
+                FilterDropdown { title: 'Artist'; sortMode: 'alpha_asc'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.state.config || ({}) }
+                FilterDropdown { title: 'Genre'; sortMode: 'count_desc'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.state.config || ({}) }
+                FilterDropdown { title: 'Tags'; sortMode: 'alpha_asc'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.state.config || ({}); ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
                 Item { Layout.fillWidth: true }
-                FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
+                FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.state.config || ({}) }
                 Action { text: 'Clear all'; visible: root.activeFilters.length > 0 || !!root.filter; onClicked: { root.selectedArtists = []; root.selectedGenres = []; root.selectedTags = []; search.clear() } }
             }
             Flow {
@@ -222,6 +222,7 @@ Rectangle {
                         clip: true
                         cellWidth: width / Math.max(2, Math.floor(width / 178))
                         cellHeight: cellWidth + 65
+                        cacheBuffer: Math.round(cellHeight * 2)
                         property string recordOrder: ''
                         property real savedOffset: 0
                         property bool restoring: false
@@ -254,7 +255,7 @@ Rectangle {
                             }
                         }
                         ScrollBar.vertical: ScrollBar { id: collectionBar }
-                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
+                        ScrollAssist { config: root.state.config || ({}); id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
                         delegate: Item {
                             required property var modelData
                             required property int index
@@ -299,7 +300,7 @@ Rectangle {
                     }
                     ListView {
                         id: albumTracks
-                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
+                        ScrollAssist { config: root.state.config || ({}); flickable: albumTracks; enabled: root.page === 'album'; accent: root.accent }
                         Layout.fillWidth: true; Layout.fillHeight: true
                         clip: true; spacing: 2
                         model: root.album.song || []
@@ -320,7 +321,7 @@ Rectangle {
                 Item {
                     ListView {
                         id: queueTracks
-                        ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
+                        ScrollAssist { config: root.state.config || ({}); flickable: queueTracks; enabled: root.page === 'queue'; accent: root.accent }
                         anchors.fill: parent; clip: true; spacing: 2
                         model: root.state.queue || []
                         ScrollBar.vertical: ScrollBar {}
@@ -422,8 +423,7 @@ Rectangle {
                 id: activityScrollComponent
                 ScrollAssist {
                     flickable: activityView.contentItem
-                    wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360
-                    wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false
+                    config: root.state.config || ({})
                     accent: root.accent
                 }
             }

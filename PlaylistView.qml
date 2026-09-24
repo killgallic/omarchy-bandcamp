@@ -36,7 +36,7 @@ ColumnLayout {
             id: playlists; Layout.preferredWidth: Math.max(160, root.width * 0.26); Layout.fillHeight: true; clip: true; spacing: 4
             model: root.state.playlists || []
             ScrollBar.vertical: ScrollBar {}
-            ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: playlists; enabled: root.active; accent: root.accent }
+            ScrollAssist { config: root.state.config || ({}); flickable: playlists; enabled: root.active; accent: root.accent }
             delegate: Action {
                 required property var modelData
                 width: ListView.view.width; text: modelData.name || 'Untitled'; emphasized: root.playlist.id === modelData.id
@@ -57,7 +57,7 @@ ColumnLayout {
                 id: tracks; Layout.fillWidth: true; Layout.fillHeight: true; clip: true
                 model: root.playlist.entry || []
                 ScrollBar.vertical: ScrollBar {}
-                ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; flickable: tracks; enabled: root.active; accent: root.accent }
+                ScrollAssist { config: root.state.config || ({}); flickable: tracks; enabled: root.active; accent: root.accent }
                 Text { anchors.centerIn: parent; visible: !!root.playlist.id && !(root.playlist.entry || []).length; text: 'This playlist is empty. Add tracks from your collection.'; width: parent.width - 24; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter; color: root.muted; font.pixelSize: 13 }
                 delegate: TrackRow {
                     required property var modelData

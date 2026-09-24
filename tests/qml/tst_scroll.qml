@@ -7,7 +7,14 @@ TestCase {
     Flickable { id: list; anchors.fill: parent; contentHeight: 2000
         ScrollAssist { id: assist; flickable: list }
     }
-    function init() { assist.resetWheel() }
+    function init() {
+        assist.resetWheel()
+        assist.wheelStep = 360
+        assist.wheelAcceleration = true
+        assist.reducedMotion = false
+        list.contentHeight = 2000
+        list.contentY = 0
+    }
     function test_bounds() {
         list.contentY = 0
         assist.scrollBy(-120)
@@ -28,11 +35,11 @@ TestCase {
         assist.resetWheel()
         list.contentY = 200
         mouseWheel(list, 100, 100, 0, -120)
-        compare(list.contentY, 560)
+        tryCompare(list, 'contentY', 560, 1000)
         assist.resetWheel()
         assist.wheelStep = 600
         mouseWheel(list, 100, 100, 0, -120)
-        compare(list.contentY, 1160)
+        tryCompare(list, 'contentY', 1160, 1000)
         assist.wheelStep = 360
     }
     function test_fast_wheel_accelerates_and_pause_or_reverse_resets() {
@@ -79,5 +86,46 @@ TestCase {
         verify(assist.shouldHandleWheel(PointerDevice.TouchPad, 0))
         verify(!assist.shouldHandleWheel(PointerDevice.TouchPad, 12))
         verify(assist.shouldHandleWheel(PointerDevice.Mouse, 12))
+    }
+    function test_wheel_notches_animate_to_accumulated_target() {
+        assist.wheelAcceleration = false
+        assist.resetWheel()
+        list.contentY = 0
+        mouseWheel(list, 100, 100, 0, -120)
+        const motion = findChild(assist, 'wheelMotion')
+        verify(motion && motion.running)
+        verify(list.contentY < 360)
+        mouseWheel(list, 100, 100, 0, -120)
+        compare(assist.wheelTarget, 720)
+        tryVerify(() => !motion.running, 1000)
+        compare(list.contentY, 720)
+        assist.wheelAcceleration = true
+    }
+    function test_reduced_motion_moves_immediately() {
+        assist.reducedMotion = true
+        assist.wheelAcceleration = false
+        list.contentY = 0
+        mouseWheel(list, 100, 100, 0, -120)
+        compare(list.contentY, 360)
+        assist.reducedMotion = false
+        assist.wheelAcceleration = true
+    }
+    function test_reversing_wheel_uses_current_position() {
+        assist.wheelAcceleration = false
+        assist.wheelStep = 1200
+        list.contentHeight = 6000
+        list.contentY = 0
+        assist.resetWheel()
+        mouseWheel(list, 100, 100, 0, -120)
+        mouseWheel(list, 100, 100, 0, -120)
+        wait(50)
+        const position = list.contentY
+        verify(position > 0 && position < 1200)
+        mouseWheel(list, 100, 100, 0, 120)
+        verify(assist.wheelTarget < position)
+        tryCompare(list, 'contentY', 0, 1000)
+        list.contentHeight = 2000
+        assist.wheelStep = 360
+        assist.wheelAcceleration = true
     }
 }

@@ -10,7 +10,7 @@ TestCase {
         onSelectionChanged: values => selectedValues = values
     }
     function cleanup() {
-        dropdown.close(); dropdown.selectedValues = []; dropdown.sortMode = ''
+        dropdown.close(); dropdown.selectedValues = []; dropdown.sortMode = ''; dropdown.scrollConfig = ({})
         dropdown.options = Array.from({length: 80}, (_, i) => ({value: 'genre-' + i, label: 'Genre ' + i, count: i + 1}))
     }
     function test_popup_scroll_search_and_multiselect() {
@@ -23,7 +23,7 @@ TestCase {
         list.parent.grabToImage(result => result.saveToFile('/tmp/bandcamp-filter-dropdown.png'))
         wait(20)
         mouseWheel(list, 80, 80, 0, -120)
-        verify(list.contentY > 0)
+        tryVerify(() => list.contentY > 0, 1000)
         search.text = 'Genre 79'
         wait(20)
         compare(list.count, 1)
@@ -72,14 +72,13 @@ TestCase {
         dropdown.options = original
     }
     function test_wheel_speed_controls_popup() {
-        dropdown.wheelStep = 1200
-        dropdown.wheelAcceleration = false
+        dropdown.scrollConfig = {wheel_scroll_pixels:1200,wheel_acceleration:false}
         mouseClick(dropdown)
         wait(20)
         const list = findChild(dropdown, 'filterOptions')
         verify(list)
         list.contentY = 0
         mouseWheel(list, 80, 80, 0, -120)
-        compare(list.contentY, 1200)
+        tryCompare(list, 'contentY', 1200, 1000)
     }
 }

@@ -76,7 +76,7 @@ Left-click the bar entry to open or close the full player by default; right-clic
 
 Search album/artist text and open Artist, Genre, or Tags filter buttons for searchable, scrollable multi-select lists with contextual record counts. Each menu can order choices by most records, least records, A–Z, or Z–A. Values within one category use OR; different categories combine with AND. Remove selections using their chips or Clear all. Sort has its own dropdown. Native Bandcamp genres and optional MusicBrainz tags remain distinct. MusicBrainz coverage and scan results appear under Settings → Collection tags. Recently added uses Bandcamp's collection-added timestamps, not a guaranteed purchase date. Most played here/recently played track qualified listens in this app only (half a track or four minutes, whichever comes first). Local per-account history lives under `$XDG_STATE_HOME/omarchy-bandcamp`.
 
-Mouse wheel starts at 360 pixels per notch, configurable from 120–1200 in Settings. Quick consecutive turns accelerate exponentially up to 5×; a pause or direction change resets the speed. Disable acceleration in Settings if preferred. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Trackpads retain native scrolling.
+Mouse wheel starts at 360 pixels per notch, configurable from 120–1200 in Settings. Discrete notches ease into their destination and consecutive turns accumulate; Reduce motion makes them immediate. Quick consecutive turns accelerate exponentially up to 5×; a pause or direction change resets the speed. Disable acceleration in Settings if preferred. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Smooth trackpad gestures retain native scrolling.
 
 Add individual tracks or whole albums to the queue and remove queue entries. Playlists can be saved from the queue, appended to, renamed, reordered, and deleted (with confirmation). Playlist edits sync through Bandcamp's API and do not change the current queue.
 
@@ -87,6 +87,8 @@ Stream failures retry with fresh signed URLs and bounded backoff. A toolbar spin
 Enabling MusicBrainz sends artist and album names to its free public API. It needs no API key. Strict artist/title matching rejects ambiguous releases. Requests run serially, at most one per 1.05 seconds; rate-limit responses pause enrichment. Playback never depends on it.
 
 `~/.cache/omarchy-bandcamp/metadata.json` holds at most 1 MiB / 1,000 entries. Matches expire after 30 days; misses after 7. Cached tags remain available during service cooldowns. MusicBrainz tags are separate from Bandcamp genres; they are not claimed to be Bandcamp's full tag catalogue.
+
+Cached album cover paths are attached before the first collection render. Cached tag matches are applied together to avoid repeated collection redraws.
 
 ## Verification
 

@@ -18,8 +18,7 @@ ScrollView {
         ScrollAssist {
             objectName: 'homeScroll'
             flickable: root.contentItem
-            wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360
-            wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false
+            config: root.service.state.config || ({})
             accent: root.accent
         }
     }

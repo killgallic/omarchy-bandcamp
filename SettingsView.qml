@@ -23,8 +23,7 @@ ScrollView {
         id: scrollAssistComponent
         ScrollAssist {
             flickable: root.contentItem
-            wheelStep: root.config.wheel_scroll_pixels || 360
-            wheelAcceleration: root.config.wheel_acceleration !== false
+            config: root.config
             accent: root.accent
         }
     }

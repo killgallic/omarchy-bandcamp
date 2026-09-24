@@ -12,8 +12,7 @@ ActionButton {
     property bool searchable: true
     property bool showCounts: true
     property string sortMode: ''
-    property real wheelStep: 360
-    property bool wheelAcceleration: true
+    property var scrollConfig: ({})
     readonly property bool isOpen: popup.opened
     readonly property var filteredOptions: {
         const values = options.filter(option => option.label.toLowerCase().indexOf(search.text.toLowerCase()) >= 0)
@@ -103,7 +102,7 @@ ActionButton {
                 model: root.filteredOptions
                 keyNavigationEnabled: true
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
-                ScrollAssist { flickable: choices; wheelStep: root.wheelStep; wheelAcceleration: root.wheelAcceleration; accent: root.accent }
+                ScrollAssist { flickable: choices; config: root.scrollConfig; accent: root.accent }
                 Keys.onReturnPressed: if (currentIndex >= 0) root.choose(root.filteredOptions[currentIndex])
                 Keys.onSpacePressed: if (currentIndex >= 0) root.choose(root.filteredOptions[currentIndex])
                 delegate: ItemDelegate {

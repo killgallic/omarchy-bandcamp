@@ -35,8 +35,8 @@ ColumnLayout {
         background: Rectangle { color: Qt.lighter(root.background,1.12); radius: 4; border.color: parent.activeFocus ? root.accent : root.muted }
     }
     RowLayout {
-        FilterDropdown { title: 'Artist'; options: Array.from(new Set(root.albums.map(a=>a.artist).filter(Boolean))).sort().map(v=>({value:v,label:v})); showCounts: false; selectedValues: root.selectedArtists; onSelectionChanged: values=>root.selectedArtists=values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false }
-        FilterDropdown { title: 'Genre'; options: Array.from(new Set(root.albums.map(a=>a.genre).filter(Boolean))).sort().map(v=>({value:v,label:v})); showCounts: false; selectedValues: root.selectedGenres; onSelectionChanged: values=>root.selectedGenres=values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false }
+        FilterDropdown { title: 'Artist'; options: Array.from(new Set(root.albums.map(a=>a.artist).filter(Boolean))).sort().map(v=>({value:v,label:v})); showCounts: false; selectedValues: root.selectedArtists; onSelectionChanged: values=>root.selectedArtists=values; foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.service.state.config || ({}) }
+        FilterDropdown { title: 'Genre'; options: Array.from(new Set(root.albums.map(a=>a.genre).filter(Boolean))).sort().map(v=>({value:v,label:v})); showCounts: false; selectedValues: root.selectedGenres; onSelectionChanged: values=>root.selectedGenres=values; foreground: root.foreground; surface: root.background; accent: root.accent; scrollConfig: root.service.state.config || ({}) }
         Item { Layout.fillWidth: true }
         ComboBox { palette.text: root.foreground; palette.buttonText: root.foreground; palette.base: root.background; palette.button: Qt.lighter(root.background, 1.2); model: ['Artist A–Z','Recently added']; currentIndex: root.order === 'newest' ? 1 : 0; onActivated: root.order = currentIndex === 1 ? 'newest' : 'artist' }
     }
@@ -45,7 +45,7 @@ ColumnLayout {
         Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6
         model: root.records
         ScrollBar.vertical: ScrollBar {}
-        ScrollAssist { flickable: list; wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false; accent: root.accent }
+        ScrollAssist { flickable: list; config: root.service.state.config || ({}); accent: root.accent }
         delegate: Rectangle {
             required property var modelData
             width: ListView.view.width; height: 54; radius: 4

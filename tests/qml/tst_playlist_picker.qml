@@ -28,7 +28,7 @@ TestCase {
   const list = findChild(picker,'playlistChoices'); verify(list)
   list.contentY = 0
   mouseWheel(list,80,80,0,-120)
-  compare(list.contentY,1200)
+  tryCompare(list,'contentY',1200,1000)
   picker.close(); service.state = original
  }
 }
