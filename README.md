@@ -66,7 +66,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `large_player_height` | `760` | Initial library height, 620–2000 |
 | `show_discover_links` | `true` | Bandcamp Discover and Daily links |
 | `wheel_acceleration` | `true` | Accelerate rapid consecutive wheel turns, capped at 5× |
-| `wheel_scroll_pixels` | `360` | Mouse wheel travel per notch, 120–1200 |
+| `wheel_scroll_pixels` | `360` | Mouse wheel travel per notch across scrollable views and menus, 120–1200 |
 | `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
 | `metadata_enrichment` | `false` | Optional MusicBrainz tags |
 

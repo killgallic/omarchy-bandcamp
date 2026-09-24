@@ -21,4 +21,14 @@ TestCase {
   service.state=Object.assign({},service.state,{playlistBusy:false})
   tryCompare(picker,'opened',false)
  }
+ function test_wheel_speed_controls_playlist_choices() {
+  const original = service.state
+  service.state = Object.assign({}, original, {config:{wheel_scroll_pixels:1200,wheel_acceleration:false},playlists:Array.from({length:80},(_,i)=>({id:String(i),name:'Playlist '+i}))})
+  picker.open(); tryCompare(picker,'opened',true)
+  const list = findChild(picker,'playlistChoices'); verify(list)
+  list.contentY = 0
+  mouseWheel(list,80,80,0,-120)
+  compare(list.contentY,1200)
+  picker.close(); service.state = original
+ }
 }

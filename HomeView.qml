@@ -13,6 +13,17 @@ ScrollView {
     signal playlistsRequested()
     readonly property var recent: service.state.homeRecent || []
     readonly property var rediscover: service.state.homeRediscover || []
+    Component {
+        id: scrollAssistComponent
+        ScrollAssist {
+            objectName: 'homeScroll'
+            flickable: root.contentItem
+            wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360
+            wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false
+            accent: root.accent
+        }
+    }
+    Component.onCompleted: scrollAssistComponent.createObject(root.contentItem)
     component Action: ActionButton { foreground: root.foreground; surface: root.surface; accent: root.accent }
     component Heading: Text { color: root.foreground; font.pixelSize: 22; font.bold: true }
     component Shelf: Flow {

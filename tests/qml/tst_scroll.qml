@@ -72,4 +72,12 @@ TestCase {
         assist.wheelStep = 360
         assist.wheelAcceleration = true
     }
+    function test_discrete_touchpad_classified_wheel_uses_mouse_path() {
+        const handler = findChild(assist, 'discreteWheelHandler')
+        verify(handler)
+        verify((handler.acceptedDevices & PointerDevice.TouchPad) !== 0)
+        verify(assist.shouldHandleWheel(PointerDevice.TouchPad, 0))
+        verify(!assist.shouldHandleWheel(PointerDevice.TouchPad, 12))
+        verify(assist.shouldHandleWheel(PointerDevice.Mouse, 12))
+    }
 }

@@ -81,6 +81,15 @@ TestCase {
         service.state = original
         wait(30)
     }
+    function test_collection_wheel_tracks_saved_speed() {
+        const original = service.state
+        service.state = Object.assign({}, original, {config:{wheel_scroll_pixels:1200,wheel_acceleration:true}})
+        player.page = 'collection'
+        compare(findChild(player, 'collectionScroll').wheelStep, 1200)
+        service.state = Object.assign({}, service.state, {config:{wheel_scroll_pixels:720,wheel_acceleration:false}})
+        compare(findChild(player, 'collectionScroll').wheelStep, 720)
+        service.state = original
+    }
     function test_genres_sort_by_count_then_name() {
         const original = service.state
         service.state = Object.assign({}, original, {albums: [

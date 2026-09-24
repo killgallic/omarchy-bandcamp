@@ -19,6 +19,16 @@ ScrollView {
     readonly property var config: service.state.config || ({})
     readonly property var metadataJob: service.state.metadataJob || ({})
     readonly property var cacheStats: service.state.cacheStats || ({})
+    Component {
+        id: scrollAssistComponent
+        ScrollAssist {
+            flickable: root.contentItem
+            wheelStep: root.config.wheel_scroll_pixels || 360
+            wheelAcceleration: root.config.wheel_acceleration !== false
+            accent: root.accent
+        }
+    }
+    Component.onCompleted: scrollAssistComponent.createObject(root.contentItem)
     function configure(key, value) { const values = {}; values[key] = value; service.send('configure', {values: values}) }
     ColumnLayout {
         width: root.availableWidth; spacing: 16

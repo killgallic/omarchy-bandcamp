@@ -13,6 +13,11 @@ Item {
     property real lastWheelTime: 0
     property int lastWheelDirection: 0
     property int wheelBurst: 0
+    function shouldHandleWheel(deviceType, pixels) {
+        // Some discrete mice arrive as TouchPad devices on Wayland. Pixel deltas
+        // distinguish a smooth gesture, which should keep native scrolling.
+        return deviceType !== PointerDevice.TouchPad || pixels === 0
+    }
     function resetWheel() { lastWheelTime = 0; lastWheelDirection = 0; wheelBurst = 0 }
     function mouseWheelDistance(angle, pixels, now) {
         // Mouse wheels can supply both deltas: prefer their angle so the configured
@@ -51,18 +56,18 @@ Item {
     onVisibleChanged: if (!visible) { stop(); resetWheel() }
     Shortcut { sequence: 'Escape'; enabled: root.scrolling; onActivated: root.stop() }
     WheelHandler {
-        acceptedDevices: PointerDevice.Mouse
+        objectName: 'discreteWheelHandler'
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
         onWheel: event => {
             root.stop()
+            if (!root.shouldHandleWheel(event.device.type, event.pixelDelta.y)) {
+                event.accepted = false
+                return
+            }
             root.flickable.cancelFlick()
             root.scrollBy(root.mouseWheelDistance(event.angleDelta.y, event.pixelDelta.y, Date.now()))
             event.accepted = true
         }
-    }
-    WheelHandler {
-        acceptedDevices: PointerDevice.TouchPad
-        blocking: false
-        onWheel: event => { root.stop(); event.accepted = false }
     }
     MouseArea {
         anchors.fill: parent

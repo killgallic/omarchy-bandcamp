@@ -34,9 +34,11 @@ Dialog {
         TextField { id: search; Layout.fillWidth: true; placeholderText: 'Find a playlist' }
         Text { text: root.service.state.playlistError || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap; Layout.fillWidth: true }
         ListView {
+            id: choices; objectName: 'playlistChoices'
             Layout.fillWidth: true; Layout.fillHeight: true; clip: true
             model: (root.service.state.playlists || []).filter(p => (p.name || '').toLowerCase().includes(search.text.toLowerCase()))
             ScrollBar.vertical: ScrollBar {}
+            ScrollAssist { flickable: choices; wheelStep: (root.service.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.service.state.config || {}).wheel_acceleration !== false; accent: root.accent }
             delegate: ActionButton {
                 required property var modelData
                 width: ListView.view.width; text: (modelData.name || 'Untitled') + '  ·  ' + (modelData.songCount || 0)

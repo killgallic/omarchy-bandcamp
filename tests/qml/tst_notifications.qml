@@ -112,5 +112,23 @@ TestCase {
         compare(center.history.length, 1)
         popup.close()
     }
+    function test_history_wheel_uses_player_speed() {
+        notificationService.state = Object.assign({}, notificationService.state, {config:{wheel_scroll_pixels:1200,wheel_acceleration:false}})
+        const player = createTemporaryObject(playerComponent, this)
+        verify(player)
+        for (let i = 0; i < 20; i++) center.push({id:'item'+i, message:'A long notification about item '+i+' in the music collection'})
+        findChild(player, 'notificationHistoryButton').clicked()
+        const popup = findChild(player, 'notificationHistoryPopup')
+        tryCompare(popup, 'opened', true)
+        wait(50)
+        const view = findChild(player, 'activityScroll')
+        verify(view)
+        const flickable = view.contentItem
+        verify(flickable.contentHeight > flickable.height + 300)
+        flickable.contentY = 0
+        mouseWheel(flickable, 80, 80, 0, -120)
+        compare(flickable.contentY, Math.min(1200, flickable.contentHeight - flickable.height))
+        popup.close()
+    }
 
 }

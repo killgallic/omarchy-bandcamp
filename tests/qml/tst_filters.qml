@@ -71,4 +71,15 @@ TestCase {
         compare(dropdown.filteredOptions.map(o => o.value).join(','), 'a,z,b')
         dropdown.options = original
     }
+    function test_wheel_speed_controls_popup() {
+        dropdown.wheelStep = 1200
+        dropdown.wheelAcceleration = false
+        mouseClick(dropdown)
+        wait(20)
+        const list = findChild(dropdown, 'filterOptions')
+        verify(list)
+        list.contentY = 0
+        mouseWheel(list, 80, 80, 0, -120)
+        compare(list.contentY, 1200)
+    }
 }

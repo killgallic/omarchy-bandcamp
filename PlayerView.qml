@@ -195,11 +195,11 @@ Rectangle {
             }
             RowLayout {
                 visible: root.page === 'collection'; Layout.fillWidth: true; spacing: 8
-                FilterDropdown { title: 'Artist'; sortMode: 'alpha_asc'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent }
-                FilterDropdown { title: 'Genre'; sortMode: 'count_desc'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent }
-                FilterDropdown { title: 'Tags'; sortMode: 'alpha_asc'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
+                FilterDropdown { title: 'Artist'; sortMode: 'alpha_asc'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
+                FilterDropdown { title: 'Genre'; sortMode: 'count_desc'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
+                FilterDropdown { title: 'Tags'; sortMode: 'alpha_asc'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
                 Item { Layout.fillWidth: true }
-                FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent }
+                FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false }
                 Action { text: 'Clear all'; visible: root.activeFilters.length > 0 || !!root.filter; onClicked: { root.selectedArtists = []; root.selectedGenres = []; root.selectedTags = []; search.clear() } }
             }
             Flow {
@@ -413,10 +413,23 @@ Rectangle {
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
         background: Rectangle { color: root.background; border.color: root.muted; radius: 6 }
         ScrollView {
+            id: activityView; objectName: 'activityScroll'
             anchors.fill: parent
             clip: true
             contentWidth: availableWidth
+            contentHeight: historyToast.implicitHeight
+            Component {
+                id: activityScrollComponent
+                ScrollAssist {
+                    flickable: activityView.contentItem
+                    wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360
+                    wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false
+                    accent: root.accent
+                }
+            }
+            Component.onCompleted: activityScrollComponent.createObject(activityView.contentItem)
             NotificationToast {
+                id: historyToast
                 width: parent.width
                 center: root.notificationCenter; showHistory: true
                 foreground: root.foreground; background: root.background; accent: root.accent

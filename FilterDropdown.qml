@@ -12,6 +12,8 @@ ActionButton {
     property bool searchable: true
     property bool showCounts: true
     property string sortMode: ''
+    property real wheelStep: 360
+    property bool wheelAcceleration: true
     readonly property bool isOpen: popup.opened
     readonly property var filteredOptions: {
         const values = options.filter(option => option.label.toLowerCase().indexOf(search.text.toLowerCase()) >= 0)
@@ -101,14 +103,7 @@ ActionButton {
                 model: root.filteredOptions
                 keyNavigationEnabled: true
                 ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOn }
-                WheelHandler {
-                    acceptedDevices: PointerDevice.Mouse
-                    onWheel: event => {
-                        const delta = event.pixelDelta.y ? -event.pixelDelta.y : -event.angleDelta.y
-                        choices.contentY = Math.max(choices.originY, Math.min(choices.originY + Math.max(0, choices.contentHeight - choices.height), choices.contentY + delta))
-                        event.accepted = true
-                    }
-                }
+                ScrollAssist { flickable: choices; wheelStep: root.wheelStep; wheelAcceleration: root.wheelAcceleration; accent: root.accent }
                 Keys.onReturnPressed: if (currentIndex >= 0) root.choose(root.filteredOptions[currentIndex])
                 Keys.onSpacePressed: if (currentIndex >= 0) root.choose(root.filteredOptions[currentIndex])
                 delegate: ItemDelegate {
