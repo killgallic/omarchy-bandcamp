@@ -19,7 +19,7 @@ Rectangle {
             Layout.fillWidth: true
             Layout.margins: 10
             BandcampIcon { color: root.accent; width: 20; height: 20 }
-            BusyIndicator { Layout.preferredWidth: 18; Layout.preferredHeight: 18; running: root.service && root.service.state.loading; visible: running }
+            BusyIndicator { Layout.preferredWidth: 18; Layout.preferredHeight: 18; running: Boolean(root.service && root.service.state && root.service.state.loading); visible: running }
             ActionButton { text: 'Retry'; visible: root.service && !!root.service.state.error; foreground: root.foreground; surface: root.background; accent: root.accent; implicitHeight: 30; onClicked: root.service.send('retry') }
             ActionButton { Layout.fillWidth: true; text: 'bandcamp'; foreground: root.foreground; surface: root.background; accent: root.accent; onClicked: { root.service.homeRequested(); root.openRequested() } }
             ActionButton { text: root.service && root.service.state.connected ? 'Home' : 'Sign in'; foreground: root.foreground; surface: root.background; accent: root.accent; implicitHeight: 30; onClicked: { root.service.homeRequested(); root.openRequested() } }
