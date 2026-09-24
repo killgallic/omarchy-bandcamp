@@ -1,4 +1,6 @@
 import json
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -17,6 +19,11 @@ class FakeAPI:
 
 class BackendTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.environment = patch.dict(os.environ, {'XDG_CONFIG_HOME':self.directory.name, 'XDG_CACHE_HOME':self.directory.name, 'XDG_STATE_HOME':self.directory.name})
+        self.environment.start()
+        self.addCleanup(self.environment.stop)
         self.events = []
         self.app = App(emit=self.events.append)
 

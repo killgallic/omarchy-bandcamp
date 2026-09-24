@@ -1,0 +1,15 @@
+name: Bug report
+description: A reproducible player problem
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the action, expected result, and actual result. Never include your generated Subsonic credentials, stream URL, or private account data.
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Omarchy, Qt, mpv, and plugin versions; relevant non-secret log lines.

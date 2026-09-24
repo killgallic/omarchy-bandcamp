@@ -7,7 +7,15 @@ Button {
     property var track: ({})
     property string actionText: ''
     signal actionClicked()
-    rightPadding: actionText ? 90 : 8
+    signal contextRequested()
+    rightPadding: rowActions.implicitWidth + 12
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier))) {
+            root.contextRequested()
+            event.accepted = true
+        }
+    }
+    TapHandler { acceptedButtons: Qt.RightButton; onTapped: { root.forceActiveFocus(); root.contextRequested() } }
     property int number: 0
     property bool selected: false
     property color foreground: '#d8dee9'
@@ -16,7 +24,13 @@ Button {
     implicitHeight: 56
     Accessible.name: 'Play ' + (track.title || track.name || '')
     background: Rectangle { radius: 4; color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, root.selected ? 0.17 : root.hovered ? 0.08 : 0); border.width: root.activeFocus ? 1 : 0; border.color: root.accent }
-    ActionButton { anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.rightMargin: 6; visible: !!root.actionText; text: root.actionText; foreground: root.foreground; accent: root.accent; onClicked: root.actionClicked() }
+    Row {
+        id: rowActions
+        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter; anchors.rightMargin: 6
+        spacing: 6
+        ActionButton { objectName: 'trackAction'; visible: !!root.actionText; text: root.actionText; foreground: root.foreground; accent: root.accent; onClicked: root.actionClicked() }
+        ActionButton { objectName: 'trackOverflow'; text: '⋯'; Accessible.name: 'Track actions for ' + (root.track.title || root.track.name || 'track'); foreground: root.foreground; accent: root.accent; onClicked: root.contextRequested() }
+    }
     contentItem: RowLayout {
         spacing: 12
         Text { Layout.preferredWidth: 28; text: root.selected ? '▶' : root.number; color: root.selected ? root.accent : root.muted; horizontalAlignment: Text.AlignHCenter; font.pixelSize: 12 }

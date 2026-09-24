@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+set -euo pipefail
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+if ! command -v uv >/dev/null; then
+  printf '%s\n' 'Omarchy Bandcamp needs uv. Install it with your package manager, then rerun bin/setup.' >&2
+  exit 1
+fi
+if ! command -v mpv >/dev/null; then
+  printf '%s\n' 'Omarchy Bandcamp needs mpv. Install it with your package manager, then rerun bin/setup.' >&2
+  exit 1
+fi
+if ! command -v secret-tool >/dev/null; then
+  printf '%s\n' 'Note: secret-tool is unavailable; remembered login needs the libsecret package.' >&2
+fi
+(cd "$project_dir" && uv sync --frozen)
+printf 'Ready. Open Bandcamp from the Omarchy bar or run %s/bin/omarchy-bandcamp\n' "$project_dir"

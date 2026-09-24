@@ -1,6 +1,6 @@
 [project]
 name = "omarchy-bandcamp"
-version = "0.2.0"
+version = "0.3.0"
 description = "A native Omarchy player for your Bandcamp collection"
 requires-python = ">=3.11"
 dependencies = ["dbus-next>=0.2.3,<0.3"]

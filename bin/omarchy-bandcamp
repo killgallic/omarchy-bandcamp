@@ -3,8 +3,8 @@ set -euo pipefail
 project_dir="$(cd -- "$(dirname -- "$(readlink -f -- "${BASH_SOURCE[0]}")")/.." && pwd)"
 if [[ ${1:-} == --standalone ]]; then
   shift
-elif command -v omarchy-shell >/dev/null && [[ -e ${HOME}/.config/omarchy/plugins/its.bandcamp/manifest.json ]]; then
-  reply=$(omarchy-shell shell summon its.bandcamp '{}' 2>/dev/null) || reply=''
+elif command -v omarchy-shell >/dev/null && [[ -e ${HOME}/.config/omarchy/plugins/killgallic.bandcamp/manifest.json ]]; then
+  reply=$(omarchy-shell shell summon killgallic.bandcamp '{}' 2>/dev/null) || reply=''
   if [[ $reply == ok ]]; then
     exit 0
   fi

@@ -10,13 +10,15 @@ Rectangle {
     property color accent: '#81a1c1'
     property color muted: '#808994'
     property string fontFamily: 'sans-serif'
-    property bool showErrors: false
-    property string page: 'collection'
+    property string page: 'home'
+    function goHome() { page = 'home'; if (state.connected) service.send('playlists') }
+    function openAlbum(record) { service.state = Object.assign({}, state, {album:null}); page = 'album'; service.send('album', {id:record.id}) }
     property string filter: ''
     property var selectedArtists: []
     property var selectedGenres: []
     property var selectedTags: []
     readonly property var state: service ? service.state : ({})
+    readonly property var notificationCenter: service && service.notifications ? service.notifications : null
     readonly property var libraryAlbums: state.albums || []
     readonly property var album: state.album || ({})
     readonly property var records: libraryAlbums.filter(a => matches(a, ''))
@@ -24,7 +26,7 @@ Rectangle {
     readonly property var genreOptions: facetOptions('Genre')
     readonly property var tagOptions: facetOptions('Tags')
     readonly property var activeFilters: selectedArtists.map(v => ({kind: 'Artist', value: v})).concat(selectedGenres.map(v => ({kind: 'Genre', value: v})), selectedTags.map(v => ({kind: 'Tags', value: v})))
-    readonly property var sortOptions: [{value:'artist',label:'Artist A–Z'}, {value:'album',label:'Album A–Z'}, {value:'newest',label:'Recently added'}, {value:'most_played',label:'Most played here'}, {value:'recent_played',label:'Recently played here'}]
+    readonly property var sortOptions: [{value:'artist',label:'Artist A–Z'}, {value:'album',label:'Album A–Z'}, {value:'newest',label:'Recently added'}, {value:'recent_purchased',label:'Recently purchased (public)'}, {value:'most_played',label:'Most played here'}, {value:'recent_played',label:'Recently played here'}]
     function valuesFor(a, kind) { return kind === 'Artist' ? [a.artist || ''] : kind === 'Genre' ? [a.genre || ''] : (a.tags || []) }
     function matches(a, skip) {
         const text = ((a.name || a.title || '') + ' ' + (a.artist || '')).toLowerCase()
@@ -83,12 +85,13 @@ Rectangle {
             Layout.fillWidth: true
             Layout.margins: 24
             spacing: 12
-            Artwork { Layout.preferredWidth: 32; Layout.preferredHeight: 32; source: (root.state.profile || {}).art || ''; foreground: root.foreground }
-            Copy { text: 'bandcamp'; font.pixelSize: 24; font.bold: true; font.italic: true; font.letterSpacing: -1 }
+            Button { Layout.preferredWidth: 32; Layout.preferredHeight: 32; Accessible.name: 'Home'; background: Artwork { source: (root.state.profile || {}).art || ''; foreground: root.foreground }
+                onClicked: root.goHome() }
+            Action { text: 'bandcamp'; Accessible.name: 'Bandcamp home'; font.pixelSize: 24; font.bold: true; font.italic: true; onClicked: root.goHome() }
             Copy { text: ' /  YOUR RECORDS'; color: root.muted; font.pixelSize: 10; font.letterSpacing: 2; visible: root.width > 650 }
             Item { Layout.fillWidth: true }
             BusyIndicator { Layout.preferredWidth: 22; Layout.preferredHeight: 22; running: !!(root.state.loading || root.state.busy || root.state.metadataBusy); visible: running; ToolTip.visible: hovered; ToolTip.text: root.state.playbackStatus || 'Loading…' }
-            Action { text: '⚠'; visible: !!root.state.error || !!root.service.processError; Accessible.name: 'Show player warning'; onClicked: root.showErrors = !root.showErrors }
+            Action { objectName: 'notificationHistoryButton'; text: 'Activity' + (root.notificationCenter && root.notificationCenter.unresolvedCount ? ' · ' + root.notificationCenter.unresolvedCount : ''); visible: !!root.notificationCenter && root.notificationCenter.history.length > 0; Accessible.name: 'Notification history'; onClicked: activity.open() }
             Action { text: 'Settings'; onClicked: root.page = 'settings' }
             Action { text: 'Mini'; visible: (root.state.config || {}).mini_player_enabled !== false; Accessible.name: 'Open mini player'; onClicked: root.minimizeRequested() }
             Action { text: 'Quit'; onClicked: root.quitRequested() }
@@ -99,21 +102,31 @@ Rectangle {
             implicitHeight: message.implicitHeight + 24
             visible: !!message.text
             color: Qt.rgba(root.accent.r, root.accent.g, root.accent.b, 0.12)
-            Copy { id: message; anchors.fill: parent; anchors.margins: 12; text: (root.showErrors ? ((root.service ? root.service.processError : '') || root.state.error) : '') || root.state.notice || ''; wrapMode: Text.Wrap; font.pixelSize: 13 }
+            Copy { id: message; anchors.fill: parent; anchors.margins: 12; text: !root.state.connected ? ((root.service ? root.service.processError : '') || root.state.error || '') : ''; wrapMode: Text.Wrap; font.pixelSize: 13 }
         }
         Item {
             Layout.fillWidth: true; Layout.fillHeight: true
-            visible: root.state.starting === true
+            visible: root.state.starting === true && !root.state.setupRequired
             ColumnLayout {
-                anchors.centerIn: parent
+                anchors.centerIn: parent; width: Math.min(parent.width - 48, 480); spacing: 14
                 BusyIndicator { Layout.alignment: Qt.AlignHCenter; running: parent.parent.visible }
                 Copy { text: 'Reconnecting to your collection…'; color: root.muted }
+                Copy { Layout.fillWidth: true; visible: !!root.state.cachedCollection; text: root.state.cachedCollection ? (root.state.cachedCollection.albums || []).length + ' cached records · ' + (root.state.cachedCollection.stale ? 'refreshing an older snapshot' : 'checking for updates') : ''; color: root.muted; wrapMode: Text.Wrap }
+                Copy { Layout.fillWidth: true; visible: !!root.state.cachedCollection; text: root.state.cachedCollection ? (root.state.cachedCollection.albums || []).slice(0, 4).map(a => (a.artist || '') + ' — ' + (a.name || '')).join('\n') : ''; color: root.muted; wrapMode: Text.Wrap }
             }
+        }
+        ColumnLayout {
+            Layout.fillWidth: true; Layout.fillHeight: true
+            visible: root.state.setupRequired === true
+            spacing: 12
+            Copy { text: 'One quick setup step'; font.pixelSize: 26; font.bold: true }
+            Copy { Layout.fillWidth: true; wrapMode: Text.Wrap; text: 'Install the locked Python dependencies with bin/setup in the Omarchy Bandcamp project directory. Then reopen the player.' }
+            Action { text: 'Retry'; onClicked: root.service.start() }
         }
         // Login fields live only while disconnected; no password survives login.
         Loader {
             Layout.fillWidth: true; Layout.fillHeight: true
-            active: !root.state.connected && !root.state.starting
+            active: !root.state.connected && !root.state.starting && !root.state.setupRequired && !root.state.offline
             visible: active
             sourceComponent: Component {
                 Item {
@@ -143,6 +156,11 @@ Rectangle {
                 }
             }
         }
+        OfflineView {
+            Layout.fillWidth: true; Layout.fillHeight: true; Layout.margins: 24
+            visible: root.state.offline === true && !root.state.starting
+            service: root.service; foreground: root.foreground; background: root.background; accent: root.accent; muted: root.muted
+        }
         ColumnLayout {
             visible: !!root.state.connected
             Layout.fillWidth: true; Layout.fillHeight: true
@@ -150,14 +168,14 @@ Rectangle {
             spacing: 20
             RowLayout {
                 Layout.fillWidth: true
-                Action { text: 'Collection'; emphasized: root.page === 'collection'; onClicked: root.page = 'collection' }
+                Action { text: '← Back to records'; visible: root.page === 'album'; onClicked: root.page = 'collection' }
                 Action { text: 'Playlists'; emphasized: root.page === 'playlists'; onClicked: { root.page = 'playlists'; root.service.send('playlists') } }
                 Action { text: 'Queue' + ((root.state.queue || []).length ? ' · ' + root.state.queue.length : ''); emphasized: root.page === 'queue'; onClicked: root.page = 'queue' }
                 Item { Layout.fillWidth: true }
                 Copy { text: root.state.playbackStatus || ''; color: root.muted; font.pixelSize: 12 }
                 Action { text: 'Retry'; visible: !!root.state.error; onClicked: root.service.send('retry') }
                 Action { text: 'Refresh'; enabled: !root.state.busy; onClicked: root.service.send('refresh') }
-                Action { text: 'Sign out'; enabled: !root.state.busy; onClicked: { root.page = 'collection'; root.service.send('logout') } }
+                Action { text: 'Sign out'; enabled: !root.state.busy; onClicked: { root.page = 'home'; root.service.send('logout') } }
             }
             RowLayout {
                 visible: root.page === 'collection'
@@ -190,7 +208,7 @@ Rectangle {
             Copy { visible: root.page === 'collection'; text: root.state.metadataNotice || root.state.collectionNotice || 'Wheel to scroll · Middle-click, then move the pointer to autoscroll'; color: root.muted; font.pixelSize: 11 }
             StackLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true
-                currentIndex: root.page === 'collection' ? 0 : root.page === 'album' ? 1 : root.page === 'queue' ? 2 : root.page === 'playlists' ? 3 : 4
+                currentIndex: root.page === 'collection' ? 0 : root.page === 'album' ? 1 : root.page === 'queue' ? 2 : root.page === 'playlists' ? 3 : root.page === 'settings' ? 4 : 5
                 Item {
                     GridView {
                         id: grid
@@ -234,15 +252,20 @@ Rectangle {
                         ScrollAssist { wheelAcceleration: (root.state.config || {}).wheel_acceleration !== false; wheelStep: (root.state.config || {}).wheel_scroll_pixels || 360; id: collectionScroll; objectName: "collectionScroll"; onScrolled: grid.savedOffset = Math.max(0, grid.contentY - grid.originY); flickable: grid; enabled: root.page === 'collection'; accent: root.accent }
                         delegate: Item {
                             required property var modelData
+                            required property int index
                             width: grid.cellWidth; height: grid.cellHeight
                             Column {
                                 anchors.left: parent.left; anchors.right: parent.right; anchors.rightMargin: 18
                                 spacing: 8
                                 Button {
                                     width: parent.width; height: width
+                                    objectName: 'albumCover' + index
                                     Accessible.name: 'Open ' + (modelData.name || modelData.title) + ' by ' + modelData.artist
                                     background: Artwork { source: modelData.art || ''; foreground: root.foreground }
-                                    onClicked: { root.service.state = Object.assign({}, root.state, {album: null}); root.page = 'album'; root.service.send('album', {id: modelData.id}) }
+                                    onClicked: root.openAlbum(modelData)
+                                    TapHandler { acceptedButtons: Qt.RightButton; onTapped: itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}) }
+                                    Keys.onPressed: event => { if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) { itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}); event.accepted = true } }
+                                    Action { anchors.right: parent.right; anchors.bottom: parent.bottom; text: '⋯'; Accessible.name: 'Album actions'; onClicked: itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}) }
                                     Rectangle { anchors.fill: parent; color: 'transparent'; border.width: parent.hovered || parent.activeFocus ? 2 : 0; border.color: root.accent }
                                 }
                                 Copy { width: parent.width; text: modelData.name || modelData.title || 'Untitled'; font.bold: true; elide: Text.ElideRight }
@@ -264,6 +287,8 @@ Rectangle {
                             RowLayout {
                                 Action { text: 'Play record'; emphasized: true; enabled: !!root.album.id && !root.state.busy; onClicked: root.service.send('play_album', {id: root.album.id, index: 0}) }
                                 Action { text: '+ Queue'; enabled: !!root.album.id && !root.state.busy; onClicked: root.service.send('enqueue_album', {id: root.album.id}) }
+                                Action { text: root.album.artistUrl ? 'Artist on Bandcamp ↗' : 'Search artist ↗'; onClicked: Qt.openUrlExternally(root.album.artistUrl || 'https://bandcamp.com/search?q=' + encodeURIComponent(root.album.artist || '')) }
+                                Action { text: root.album.releaseUrl ? 'View / support release ↗' : 'Search release ↗'; onClicked: Qt.openUrlExternally(root.album.releaseUrl || 'https://bandcamp.com/search?q=' + encodeURIComponent((root.album.artist || '') + ' ' + (root.album.name || ''))) }
                             }
                         }
                     }
@@ -280,6 +305,7 @@ Rectangle {
                             width: ListView.view.width
                             foreground: root.foreground; muted: root.muted; accent: root.accent
                             track: modelData; number: index + 1
+                            onContextRequested: itemMenu.showFor(this, Object.assign({}, modelData, {releaseUrl:root.album.releaseUrl, artistUrl:root.album.artistUrl}), {kind:'track',id:modelData.id,albumId:root.album.id}, index)
                             actionText: '+ Queue'; onActionClicked: root.service.send('enqueue_track', {id: root.album.id, index: index})
                             selected: root.state.current && root.state.current.id === modelData.id
                             onClicked: root.service.send('play_album', {id: root.album.id, index: index})
@@ -299,16 +325,73 @@ Rectangle {
                             width: ListView.view.width
                             foreground: root.foreground; muted: root.muted; accent: root.accent
                             track: modelData; number: index + 1; selected: root.state.index === index
+                            onContextRequested: itemMenu.showFor(this, modelData, {kind:'track',id:modelData.id,albumId:modelData.albumId}, 0, index)
                             actionText: 'Remove'; onActionClicked: root.service.send('remove_queue', {index: index})
                             onClicked: root.service.send('play_index', {index: index})
                         }
                     }
                     Copy { anchors.centerIn: parent; visible: !(root.state.queue || []).length; text: 'Your queue is empty. Pick a record to begin.'; color: root.muted }
                 }
-                PlaylistView { service: root.service; foreground: root.foreground; background: root.background; accent: root.accent; muted: root.muted; active: root.page === 'playlists' }
+                PlaylistView { service: root.service; foreground: root.foreground; background: root.background; accent: root.accent; muted: root.muted; active: root.page === 'playlists'; onItemContextRequested: (target, item, source, index) => itemMenu.showFor(target, item, source, index) }
                 SettingsView { service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent }
+                HomeView {
+                    service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent; muted: root.muted
+                    onBrowseRequested: query => { search.text = query; root.page = 'collection' }
+                    onAlbumRequested: record => root.openAlbum(record)
+                    onPlaylistsRequested: { root.page = 'playlists'; root.service.send('playlists') }
+                }
             }
         }
         Transport { Layout.fillWidth: true; visible: !!root.state.connected; service: root.service; foreground: root.foreground; background: root.background; accent: root.accent; muted: root.muted }
     }
+    Connections { target: root.service; ignoreUnknownSignals: true; function onHomeRequested() { root.goHome() } }
+    ItemContextMenu {
+        id: itemMenu; objectName: 'itemContextMenu'; service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent
+        onPlaylistRequested: source => { playlistPicker.source = source; playlistPicker.open() }
+        onDetailsRequested: (record, source) => { information.record = record; information.source = source; information.open() }
+    }
+    PlaylistPicker { id: playlistPicker; objectName: 'playlistPicker'; service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent }
+    Dialog {
+        id: information; property var record: ({}); property var source: ({})
+        anchors.centerIn: parent; width: Math.min(420, root.width - 32); modal: true; popupType: Popup.Item
+        title: record.title || record.name || 'Information'; standardButtons: Dialog.Close
+        palette.window: root.background; palette.windowText: root.foreground; palette.text: root.foreground; palette.buttonText: root.foreground
+        ColumnLayout {
+            width: parent.width
+            Copy { Layout.fillWidth: true; text: information.record.artist || ''; wrapMode: Text.Wrap }
+            Copy { Layout.fillWidth: true; text: information.record.album || ''; wrapMode: Text.Wrap }
+            Copy { text: information.record.duration ? Math.round(information.record.duration) + ' seconds' : '' }
+            Action { text: 'View album'; visible: information.source.kind === 'track'; onClicked: { root.openAlbum({id:information.source.albumId}); information.close() } }
+            Action { text: 'Search release on Bandcamp ↗'; onClicked: Qt.openUrlExternally('https://bandcamp.com/search?q=' + encodeURIComponent((information.record.artist || '') + ' ' + (information.record.album || information.record.name || ''))) }
+        }
+    }
+    NotificationToast {
+        anchors.right: parent.right; anchors.top: parent.top
+        anchors.rightMargin: 24; anchors.topMargin: 86
+        width: Math.min(460, parent.width - 48)
+        z: 20
+        center: root.notificationCenter
+        foreground: root.foreground; background: root.background; accent: root.accent
+    }
+    Popup {
+        id: activity
+        objectName: 'notificationHistoryPopup'
+        x: Math.max(12, root.width - width - 24); y: 80
+        width: Math.min(480, root.width - 24)
+        height: Math.min(root.height - 100, 440)
+        padding: 12
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
+        background: Rectangle { color: root.background; border.color: root.muted; radius: 6 }
+        ScrollView {
+            anchors.fill: parent
+            clip: true
+            contentWidth: availableWidth
+            NotificationToast {
+                width: parent.width
+                center: root.notificationCenter; showHistory: true
+                foreground: root.foreground; background: root.background; accent: root.accent
+            }
+        }
+    }
+
 }

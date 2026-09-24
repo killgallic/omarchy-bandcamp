@@ -1,0 +1,10 @@
+name: Feature request
+description: Suggest a listening or discovery improvement
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Listener need
+      description: What are you trying to do, and how should it work?
+    validations:
+      required: true

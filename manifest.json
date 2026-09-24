@@ -1,9 +1,9 @@
 {
   "schemaVersion": 1,
-  "id": "its.bandcamp",
+  "id": "killgallic.bandcamp",
   "name": "Omarchy Bandcamp",
-  "version": "0.2.0",
-  "author": "its",
+  "version": "0.3.0",
+  "author": "killgallic",
   "license": "MIT",
   "description": "Your Bandcamp collection in a native player.",
   "kinds": ["service", "bar-widget", "panel"],
@@ -16,7 +16,7 @@
   },
   "barWidget": {
     "displayName": "Bandcamp",
-    "description": "Collection player. Click for controls, right-click for your library.",
+    "description": "Collection player. Left-click for full player, right-click for mini controls.",
     "category": "Media",
     "aliases": ["bandcamp", "collection", "music"],
     "allowMultiple": false,

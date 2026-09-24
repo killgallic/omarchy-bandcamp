@@ -90,6 +90,6 @@ Item {
     Rectangle {
         visible: root.scrolling; x: root.width / 2 - 12; y: root.anchorY - 12
         width: 24; height: 24; radius: 12; color: root.accent
-        Text { anchors.centerIn: parent; text: '↕'; color: '#181c22' }
+        Text { anchors.centerIn: parent; text: '↕'; color: (root.accent.r * 0.299 + root.accent.g * 0.587 + root.accent.b * 0.114) > 0.5 ? Qt.darker(root.accent, 4) : Qt.lighter(root.accent, 4) }
     }
 }

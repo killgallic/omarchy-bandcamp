@@ -93,7 +93,7 @@ TestCase {
         compare(findChild(player, 'loginPassword'), null)
     }
     function test_pages() {
-        for (const page of ['collection','album','queue','playlists','settings']) { player.page = page; wait(30); player.grabToImage(function(result) { result.saveToFile('/tmp/bandcamp-' + page + '-fixture.png') }); wait(30) }
+        for (const page of ['home','collection','album','queue','playlists','settings']) { player.page = page; wait(30); player.grabToImage(function(result) { result.saveToFile('/tmp/bandcamp-' + page + '-fixture.png') }); wait(30) }
         player.grabToImage(function(result) { result.saveToFile('/tmp/bandcamp-settings-fixture.png') })
         wait(80)
     }

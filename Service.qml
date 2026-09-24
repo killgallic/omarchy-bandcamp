@@ -16,12 +16,34 @@ Item {
     property string processError: ''
     property bool quitting: false
     property bool libraryVisible: false
+    readonly property alias notifications: notificationCenter
+    NotificationCenter {
+        id: notificationCenter
+        onActionRequested: action => root.send(action === 'skip' ? 'next' : action)
+    }
+    onProcessErrorChanged: {
+        if (processError) notificationCenter.push({level: 'error', code: 'backend_process', message: processError})
+    }
+    function receive(event) {
+        if (event.event === 'state') {
+            if ((event.state.connected === false && state.connected === true) ||
+                (event.state.username && state.username && event.state.username !== state.username)) notificationCenter.clear()
+            notificationCenter.ingestState(event.state, state)
+            state = Object.assign({}, state, event.state)
+            processError = ''
+        } else if (event.event === 'notification') {
+            const value = event.notification
+            if (value && value.resolved) notificationCenter.resolve(value.resourceId)
+            else notificationCenter.push(value)
+        } else if (event.event === 'raise') raiseRequested()
+    }
     signal libraryToggleRequested()
     signal miniRequested()
+    signal homeRequested()
     signal raiseRequested()
     signal stopped()
     function start() {
-        if (!backend.running) { quitting = false; processError = ''; backend.running = true }
+        if (!backend.running) { notificationCenter.clear(); quitting = false; processError = ''; state = Object.assign({}, state, {setupRequired:false, starting:true}); backend.running = true }
     }
     function send(cmd, args) {
         if (!backend.running) {
@@ -42,15 +64,18 @@ Item {
             onRead: data => {
                 try {
                     var event = JSON.parse(data)
-                    if (event.event === 'state') { root.state = Object.assign({}, root.state, event.state); root.processError = '' }
-                    else if (event.event === 'raise') root.raiseRequested()
+                    root.receive(event)
                 } catch (_) { root.processError = 'The player returned an unreadable response.' }
             }
         }
         // Backend diagnostics never contain credentials; keep them out of the UI.
         stderr: SplitParser { onRead: data => {} }
         onExited: (code, status) => {
-            if (!root.quitting) root.processError = 'The player stopped. Reopen Bandcamp to reconnect.'
+            if (!root.quitting) {
+                notificationCenter.clear()
+                root.processError = code === 1 && !root.state.connected ? 'Setup needed: run bin/setup in the Omarchy Bandcamp directory, then reopen the player.' : 'The player stopped. Reopen Bandcamp to reconnect.'
+                root.state = Object.assign({}, root.state, {starting: false, setupRequired: code === 1 && !root.state.connected})
+            }
             root.stopped()
         }
     }

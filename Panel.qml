@@ -12,18 +12,18 @@ Item {
     function close() { opened = false }
     onOpenedChanged: if (service) service.libraryVisible = opened
     function requestClose() {
-        if (shell && typeof shell.hide === 'function') shell.hide('its.bandcamp')
+        if (shell && typeof shell.hide === 'function') shell.hide('killgallic.bandcamp')
         else close()
     }
     Connections {
         target: root.service
         function onLibraryToggleRequested() {
             if (root.opened) root.requestClose()
-            else if (root.shell) root.shell.summon('its.bandcamp', '{}')
+            else if (root.shell) root.shell.summon('killgallic.bandcamp', '{}')
             else root.open('{}')
         }
         function onRaiseRequested() {
-            if (root.shell) root.shell.summon('its.bandcamp', '{}')
+            if (root.shell) root.shell.summon('killgallic.bandcamp', '{}')
             else root.open('{}')
         }
     }

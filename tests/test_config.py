@@ -30,3 +30,23 @@ class ConfigTests(unittest.TestCase):
             config = Config(path)
             self.assertTrue(config.notice)
             self.assertEqual(path.read_text(), '{bad')
+
+    def test_legacy_click_migration_preserves_custom_choice(self):
+        import json
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'config.json'
+            for old, expected in [('toggle_library', 'library'), ('mini', 'mini'), ('library', 'library')]:
+                path.write_text(json.dumps({'bar_click': old}))
+                config = Config(path)
+                self.assertEqual(config.values.get('bar_left_action'), expected)
+                self.assertEqual(config.values.get('bar_right_action'), 'mini')
+                self.assertEqual(config.values.get('schema_version'), 1)
+
+    def test_bar_preferences_validate_before_write(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config = Config(Path(directory) / 'config.json')
+            config.update({'bar_format': '{Artist} / {Song Name}', 'bar_right_action': 'none'})
+            for change in ({'bar_format': '{Password}'}, {'bar_format': 'x' * 241}, {'bar_width': 10}, {'schema_version': 2}):
+                with self.assertRaises(ValueError):
+                    config.update(change)
+            self.assertEqual(Config(config.path).values['bar_right_action'], 'none')

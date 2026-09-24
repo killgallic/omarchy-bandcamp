@@ -27,11 +27,11 @@ The fixed server is `https://bandcamp.com/api/subsonic`. Login checks collection
 
 ## Omarchy plugin
 
-The project contains service, bar-widget, and panel entry points under plugin ID `its.bandcamp`. It is linked into `~/.config/omarchy/plugins/its.bandcamp` and enabled in the right bar section on this machine. The `omarchy-bandcamp` command is installed in `~/.local/bin`. Keep this project and its `.venv` available through those links. Do not run the standalone player and plugin simultaneously: one process owns Bandcamp's media controls.
+The project contains service, bar-widget, and panel entry points under plugin ID `killgallic.bandcamp`. It is linked into `~/.config/omarchy/plugins/its.bandcamp` and enabled in the right bar section on this machine. The `omarchy-bandcamp` command is installed in `~/.local/bin`. Keep this project and its `.venv` available through those links. Do not run the standalone player and plugin simultaneously: one process owns Bandcamp's media controls.
 
-To hide the library, close it or press Mini; playback remains in the bar. To disable the plugin, run `omarchy plugin disable its.bandcamp`.
+To hide the library, close it or press Mini; playback remains in the bar. To disable the plugin, run `omarchy plugin disable killgallic.bandcamp`.
 
-The bar widget opens a mini-player on left-click, opens the collection on right-click, pauses on middle-click, and changes tracks with the scroll wheel. The built-in Omarchy media widget can also control the standalone player through MPRIS.
+The bar widget opens the full player on left-click, the mini-player on right-click, pauses on middle-click, and changes tracks with the scroll wheel. The built-in Omarchy media widget can also control the standalone player through MPRIS.
 
 ## Checks
 
@@ -56,7 +56,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `remember_login` | `true` | Restore generated credentials from Secret Service |
 | `profile_url` | empty | Public `https://bandcamp.com/yourname` URL for cached avatar |
 | `bar_display` | `icon_title` | `icon`, `title`, or `icon_title` |
-| `bar_click` | `toggle_library` | Toggle/minimize library, `library`, or `mini` |
+| `bar_left_action` / `bar_right_action` | `library` / `mini` | Independent click actions (`library`, `mini`, `play_pause`, `none`) |
 | `mini_player_enabled` | `true` | Enable mini player (disabled falls back to library) |
 | `mini_player_width` | `460` | Width from 440–900 pixels |
 | `mini_show_artwork` | `true` | Artwork in compact controls |
@@ -68,7 +68,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
 | `metadata_enrichment` | `false` | Optional MusicBrainz tags |
 
-Left-click the bar icon to open/minimize the library by default; right-click always opens the library, middle-click toggles playback, and wheel skips tracks. Mini opens compact controls. Closing/minimizing keeps playback running; Quit ends the process.
+Left-click the bar icon to open/minimize the library by default; right-click opens the mini-player, middle-click toggles playback, and wheel skips tracks. Mini opens compact controls. Closing/minimizing keeps playback running; Quit ends the process.
 
 ## Collection and playback
 
@@ -93,3 +93,27 @@ Enabling MusicBrainz sends artist and album names to its free public API. It nee
 Live read-only probes verified collection metadata, playlist listing, POST support, public profile photo, and automatic stream transition. Playlist writes use mocked contract tests, not changes to an actual user's playlists.
 
 Research: [Bandcamp announcement](https://blog.bandcamp.com/2026/07/16/discover-improvements-and-subsonic-implementation/), [Nocturne's Subsonic adapter](https://github.com/Jeffser/Nocturne/blob/main/src/integrations/navidrome.py), [Omarchy Spotify](https://github.com/stappmus/Omarchy-Spotify), [Subsonic protocol](https://www.subsonic.org/pages/api.jsp). Original implementation; unofficial and unaffiliated with Bandcamp.
+
+## Public plugin setup
+
+After `omarchy plugin add https://github.com/killgallic/omarchy-bandcamp`, run `bin/setup` from the cloned plugin directory. It checks for `uv` and `mpv` and installs the locked Python dependencies into a local `.venv`. The player presents this setup step if opened before dependencies are installed. No sudo or installation happens automatically when the bar loads.
+
+The large player now opens on Home. The profile image and Bandcamp wordmark return there from anywhere; Browse all records leads to the filterable grid. Right-click album art or a song (or use its `⋯` button / Menu key) to add it to the queue or a playlist. New playlists can be empty. Bandcamp searches are clearly labelled when a canonical artist or release URL is not available from the Subsonic API.
+
+Bar defaults: left-click full player, right-click mini-player, middle-click play/pause. Settings independently change left and right actions, choose one of four text formats or a custom `{Artist}`, `{Album}`, `{Song Name}`, `{State}` format, and control overflow, width, and scroll speed. A mouse-speed slider controls 120–1200 px per notch, with the existing accelerated burst handling.
+
+MusicBrainz consent is separate from Generate tags. The scan shows progress, matched/cached/unmatched counts, and last completion. Startup loads cached tags only. Total cache has a 256 MiB default limit, configurable from 32–2048 MiB, with per-category clear buttons. Clearing caches does not delete music or playlists from Bandcamp, local listening history, or saved login.
+
+Use `tests/run-python`, `tests/run-qml`, and `tests/check-package` for local checks. CI runs those checks in an Arch container. Releases are prepared as drafts from reviewed version tags.
+
+Existing local installs under `its.bandcamp` can migrate the bar entry and symlink to `killgallic.bandcamp`; preferences, cached artwork, listening history, and Secret Service login remain under the unchanged `omarchy-bandcamp` storage namespace.
+
+## Preview
+
+Synthetic sample records, with no listener data:
+
+![Home screen with recently added records, playlists, and discovery](assets/screenshots/home.png)
+
+![Filterable record collection](assets/screenshots/collection.png)
+
+A fresh collection snapshot is cached per account for 15 minutes by default. Startup first verifies the saved Subsonic credentials through an authenticated playlist request before using that snapshot. If a saved account cannot reconnect, the player offers a clearly marked read-only offline browser with search, Artist/Genre filters, and a Reconnect action; playback and playlist writes remain unavailable. The cache age and total disk budget are adjustable in Settings. Public profile collection pages can provide verified release URLs and partial purchase dates; records without a verified match use labelled Bandcamp searches and sort after dated purchases.

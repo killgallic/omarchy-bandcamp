@@ -16,11 +16,12 @@ from .api import BandcampAPI, APIError
 from . import credentials
 from .mpv import Mpv
 from .queue import Queue
+from .library import LibraryCache
 
 
 def public_item(item):
     keys = ('id', 'name', 'title', 'artist', 'album', 'duration', 'coverArt',
-            'songCount', 'year', 'track', 'art', 'albumId', 'genre', 'genres', 'tags', 'created', 'playCount')
+            'songCount', 'year', 'track', 'art', 'albumId', 'genre', 'genres', 'tags', 'created', 'playCount', 'releaseUrl', 'artistUrl', 'linkSource', 'purchasedAt')
     return {key: item[key] for key in keys if key in item}
 
 
@@ -37,7 +38,7 @@ class App:
                           config=self.config.values.copy(), configPath=str(self.config.path),
                           playlists=[], playlist=None, playlistBusy=False, playlistError='',
                           collectionOrder='artist', collectionNotice='', history={}, tagSource='Bandcamp genres',
-                          profile={}, metadataBusy=False, metadataNotice='')
+                          profile={}, metadataBusy=False, metadataNotice='', metadataJob={}, cacheStats={}, cachedCollection=None, offline=False)
         self.player = Mpv(self.mpv_event)
         self.network_lock = asyncio.Lock()
         self.stop = asyncio.Event()
@@ -55,12 +56,19 @@ class App:
         self.listen_recorded = False
         self.metadata_task = None
         self.metadata_cache = None
+        self.notification_serial = 0
 
     def emit(self, **patch):
         self.state.update(patch)
         self.output({'event': 'state', 'state': patch or self.state.copy()})
         if self.mpris:
             self.mpris.changed(patch)
+
+    def notify(self, level, code, message, resource_id='', action=None):
+        self.notification_serial += 1
+        self.output({'event':'notification', 'notification':{
+            'id':str(self.notification_serial), 'level':level, 'code':code,
+            'message':message, 'resourceId':resource_id, 'action':action}})
 
     def task(self, coroutine):
         task = asyncio.create_task(coroutine)
@@ -80,7 +88,9 @@ class App:
             self.emit(notice='Desktop media controls are unavailable in this session.')
         saved = await asyncio.to_thread(credentials.load) if self.config.values['remember_login'] else None
         if saved:
-            await self.handle({'cmd': 'login', **saved})
+            preview = await asyncio.to_thread(LibraryCache().load, saved['username'])
+            if preview: self.emit(cachedCollection={**preview, 'stale':time.time()-preview['updatedAt'] > self.config.values['cache_ttl_minutes']*60})
+            await self.handle({'cmd': 'login', **saved, 'cached_reconnect': True})
         else:
             self.emit(busy=False)
         self.emit(starting=False)
@@ -97,9 +107,18 @@ class App:
                     await self.network_command(cmd, message)
                 return
             if cmd in ('playlists', 'playlist', 'play_playlist', 'save_playlist', 'append_playlist',
-                       'rename_playlist', 'remove_playlist_track', 'move_playlist_track', 'delete_playlist'):
+                       'rename_playlist', 'remove_playlist_track', 'move_playlist_track', 'delete_playlist',
+                       'create_playlist', 'create_and_add', 'add_to_playlist'):
                 async with self.network_lock:
                     await self.playlist_command(cmd, message)
+                return
+            if cmd == 'reconnect':
+                saved = await asyncio.to_thread(credentials.load)
+                if saved:
+                    async with self.network_lock:
+                        await self.network_command('login', {**saved, 'cached_reconnect':True})
+                else:
+                    self.emit(error='No saved login is available. Sign in again.', offline=False)
                 return
             if cmd == 'configure':
                 async with self.network_lock:
@@ -114,13 +133,36 @@ class App:
                             self.emit(notice='The desktop keyring could not remember this login.')
                             return
                     await asyncio.to_thread(self.config.update, values)
-                    self.emit(config=self.config.values.copy(), notice=keyring_notice or 'Settings saved.')
+                    if 'cache_budget_mb' in values:
+                        from .cache import Cache
+                        await asyncio.to_thread(Cache().prune_total, self.config.values['cache_budget_mb'] * 1024 * 1024)
+                    self.emit(config=self.config.values.copy(), notice=keyring_notice)
+                    self.notify('warning' if keyring_notice else 'success', 'settings_saved', keyring_notice or 'Settings saved', 'settings')
                     if 'metadata_enrichment' in values:
-                        self.start_metadata()
+                        if not values['metadata_enrichment'] and self.metadata_task: self.metadata_task.cancel()
+                        self.start_metadata(mode='cached')
                     if 'profile_url' in values and self.api:
                         self.task(self.load_profile(self.api, self.generation))
+                        self.task(self.load_links(self.api, self.generation))
+            elif cmd == 'cache_stats':
+                from .cache import Cache
+                self.emit(cacheStats=await asyncio.to_thread(Cache().stats))
+            elif cmd == 'clear_cache':
+                from .cache import Cache
+                category = message['category']
+                await asyncio.to_thread(Cache().clear, category)
+                if category == 'metadata': self.metadata_cache = None
+                self.emit(cacheStats=await asyncio.to_thread(Cache().stats), notice='Cache cleared.')
+            elif cmd == 'generate_tags':
+                if self.config.values['metadata_enrichment'] and self.api:
+                    self.start_metadata(mode=message.get('mode', 'missing'))
+                else:
+                    self.emit(metadataNotice='Enable MusicBrainz tags in Settings first.')
+            elif cmd == 'cancel_tags':
+                if self.metadata_task: self.metadata_task.cancel()
+                self.emit(metadataBusy=False, metadataJob={**self.state['metadataJob'], 'status':'cancelled'})
             elif cmd == 'collection_order':
-                if message['order'] not in ('artist', 'album', 'newest', 'most_played', 'recent_played'):
+                if message['order'] not in ('artist', 'album', 'newest', 'recent_purchased', 'most_played', 'recent_played'):
                     raise ValueError()
                 self.emit(collectionOrder=message['order'])
                 self.sort_collection()
@@ -214,6 +256,8 @@ class App:
                 if self.player.writer:
                     await self.player.command('stop')
                 self.emit(connected=False, playing=False)
+            if cmd == 'login' and message.get('cached_reconnect') and not error.auth and self.state.get('cachedCollection'):
+                self.emit(offline=True)
             self.emit(error=str(error), busy=False)
         except (ValueError, TypeError, KeyError, IndexError):
             self.emit(error='That action is not available. Please try again.', busy=False)
@@ -228,7 +272,7 @@ class App:
             await self.player.close()
             self.queue = Queue()
             cleared = await asyncio.to_thread(credentials.clear)
-            self.emit(connected=False, username='', albums=[], album=None, queue=[], index=-1,
+            self.emit(connected=False, offline=False, cachedCollection=None, username='', albums=[], album=None, queue=[], index=-1,
                       current={}, playing=False, position=0, duration=0, busy=False, error='',
                       profile={}, playlists=[], playlist=None, history={},
                       notice='' if cleared else 'Could not clear the desktop keyring. Remove the Omarchy Bandcamp entry there if it was saved.')
@@ -244,23 +288,32 @@ class App:
                     self.config.validate({'profile_url': message['profile_url']})
                 api = BandcampAPI(username, password)
                 # Bandcamp ping may succeed without auth. Collection access proves login.
-                albums = await asyncio.to_thread(api.albums)
+                cached = await asyncio.to_thread(LibraryCache().load, username)
+                fresh = cached and time.time() - cached['updatedAt'] <= self.config.values['cache_ttl_minutes'] * 60
+                loaded_playlists = None
+                if fresh:
+                    loaded_playlists = await asyncio.to_thread(api.playlists)  # Prove credentials before showing cached records.
+                    albums = cached['albums']
+                else:
+                    albums = await asyncio.to_thread(api.albums)
                 self.generation += 1
                 self.cancel_loading()
                 self.api = api
                 self.queue = Queue()
                 await self.player.close()
                 self.player = Mpv(self.mpv_event)
-                self.emit(connected=True, username=username, albums=[public_item(a) for a in albums],
+                self.emit(cachedCollection=None, offline=False, connected=True, username=username, albums=[public_item(a) for a in albums],
                           album=None, queue=[], index=-1, current={}, playing=False, position=0,
-                          duration=0, error='', notice='', playlists=[], playlist=None, profile={}, history={}, playlistError='')
+                          duration=0, error='', notice='', playlists=loaded_playlists or [], playlist=None, profile={}, history={}, playlistError='')
                 if 'profile_url' in message:
                     self.config.update({'profile_url': message['profile_url']})
                     self.emit(config=self.config.values.copy())
+                if not fresh: self.task(asyncio.to_thread(LibraryCache().save, username, albums))
                 self.load_history()
                 self.sort_collection()
                 self.task(self.load_profile(api, self.generation))
-                self.start_metadata()
+                self.task(self.load_links(api, self.generation))
+                self.start_metadata(mode='cached')
                 if 'remember' in message:
                     self.config.update({'remember_login': bool(message['remember'])})
                     self.emit(config=self.config.values.copy())
@@ -271,6 +324,7 @@ class App:
                     if not await asyncio.to_thread(credentials.save, username, password):
                         self.emit(notice='Connected for this session. The desktop keyring could not save the login.')
                 self.task(self.load_artwork(api, self.generation))
+                if loaded_playlists is None: self.task(self.load_playlists(api, self.generation))
             else:
                 if not self.api:
                     raise APIError('Sign in to load your collection.', auth=True)
@@ -278,12 +332,16 @@ class App:
                     albums = await asyncio.to_thread(self.api.albums)
                     self.emit(albums=[public_item(a) for a in albums])
                     self.sort_collection()
+                    self.task(asyncio.to_thread(LibraryCache().save, self.api.username, albums))
                     self.generation += 1
-                    self.start_metadata()
+                    self.start_metadata(mode='cached')
                     self.task(self.load_artwork(self.api, self.generation))
+                    self.task(self.load_links(self.api, self.generation))
                 else:
                     album = await asyncio.to_thread(self.api.album, str(message['id']))
                     album = {**public_item(album), 'song': [public_item(t) for t in album.get('song', [])]}
+                    linked = next((a for a in self.state['albums'] if str(a.get('id')) == str(album.get('id'))), {})
+                    album.update({key:linked[key] for key in ('releaseUrl','artistUrl','linkSource', 'purchasedAt') if key in linked})
                     art = await self.artwork(self.api, album.get('coverArt'))
                     if art:
                         album['art'] = art
@@ -292,12 +350,14 @@ class App:
                     if cmd == 'album':
                         self.emit(album=album)
                     elif cmd == 'play_album':
-                        self.queue.replace(album['song'], int(message.get('index', 0)))
+                        play_index = next((i for i, t in enumerate(album['song']) if str(t.get('id')) == str(message['trackId'])), -1) if message.get('trackId') else int(message.get('index', 0))
+                        if not 0 <= play_index < len(album['song']): raise ValueError('Track is no longer available.')
+                        self.queue.replace(album['song'], play_index)
                         await self.play_current()
                     elif cmd in ('enqueue_album', 'enqueue_track'):
                         tracks = album['song']
                         if cmd == 'enqueue_track':
-                            index = int(message['index'])
+                            index = next((i for i, t in enumerate(tracks) if str(t.get('id')) == str(message['trackId'])), -1) if message.get('trackId') else int(message['index'])
                             if not 0 <= index < len(tracks):
                                 raise ValueError()
                             tracks = [tracks[index]]
@@ -322,6 +382,8 @@ class App:
                 temporary.write_bytes(data)
                 temporary.chmod(0o600)
                 temporary.replace(path)
+                from .cache import Cache
+                Cache(cache).prune_total(self.config.values['cache_budget_mb'] * 1024 * 1024)
             return path.as_uri()
         try:
             return await asyncio.to_thread(fetch)
@@ -406,6 +468,7 @@ class App:
         else:
             self.emit(playing=False, loading=False, playbackStatus='Stream failed',
                       error='This track could not be streamed after retrying. Retry or choose another track.')
+            self.notify('error', 'stream_failed', 'This track could not be streamed. Retry or skip it.', str(self.queue.current.get('id','')), {'id':'retry'})
 
     async def retry_stream(self, token, attempt):
         await asyncio.sleep(min(2 ** (attempt - 1), 8))
@@ -444,6 +507,7 @@ class App:
             if self.load_timeout:
                 self.load_timeout.cancel()
             self.emit(playing=True, loading=False, playbackStatus='', error='')
+            self.output({'event':'notification', 'notification':{'resolved':True, 'resourceId':str(self.queue.current.get('id',''))}})
         elif kind == 'end-file':
             self.media_loaded = False
             if event.get('reason') == 'eof':
@@ -485,9 +549,19 @@ class App:
             ids = [str(t['id']) for t in self.queue.tracks]
             if cmd in ('save_playlist', 'append_playlist') and not ids:
                 raise ValueError('Add tracks to the queue first.')
-            if cmd == 'save_playlist':
+            if cmd in ('save_playlist', 'create_playlist', 'create_and_add'):
+                if cmd == 'create_playlist':
+                    ids = []
+                elif cmd == 'create_and_add':
+                    from .playlists import source_tracks
+                    tracks = await asyncio.to_thread(source_tracks, self.api, message['source'])
+                    ids = [str(t['id']) for t in tracks]
                 created = await asyncio.to_thread(self.api.create_playlist, message['name'], ids)
                 playlist_id = str(created.get('id', ''))
+            elif cmd == 'add_to_playlist':
+                from .playlists import source_tracks
+                tracks = await asyncio.to_thread(source_tracks, self.api, message['source'])
+                await asyncio.to_thread(self.api.append_playlist, playlist_id, [str(t['id']) for t in tracks])
             elif cmd == 'append_playlist':
                 await asyncio.to_thread(self.api.append_playlist, playlist_id, ids)
             elif cmd == 'rename_playlist':
@@ -519,7 +593,9 @@ class App:
         except (APIError, ValueError, KeyError, IndexError) as error:
             if isinstance(error, APIError) and error.auth:
                 raise
-            self.emit(playlistError=str(error) if isinstance(error, APIError) else 'Check the playlist name or selected track and try again.')
+            message = str(error) if isinstance(error, APIError) else 'Check the playlist name or selected track and try again.'
+            self.emit(playlistError=message)
+            self.notify('error', 'playlist_operation_failed', message, playlist_id, {'id':'refresh'})
         finally:
             self.emit(playlistBusy=False)
 
@@ -566,8 +642,8 @@ class App:
     def sort_collection(self):
         order = self.state['collectionOrder']
         history = self.state['history']
-        def created(album):
-            value = str(album.get('created', ''))
+        def created(album, field='created'):
+            value = str(album.get(field, ''))
             try:
                 return parsedate_to_datetime(value).timestamp()
             except (ValueError, TypeError, OverflowError):
@@ -582,14 +658,16 @@ class App:
                 return title, artist
             if order == 'newest':
                 return -created(album), artist, title
+            if order == 'recent_purchased':
+                return -created(album, 'purchasedAt'), artist, title
             if order in ('most_played', 'recent_played'):
                 value = history.get(str(album['id']), {}).get('plays' if order == 'most_played' else 'lastPlayed', 0)
                 return -value, artist, title
             return artist, title
-        notice = 'Listening history recorded by this app.' if order in ('most_played', 'recent_played') else 'Collection-added dates supplied by Bandcamp; these may differ from purchase dates.' if order == 'newest' else ''
+        notice = 'Listening history recorded by this app.' if order in ('most_played', 'recent_played') else 'Collection-added dates supplied by Bandcamp; these may differ from purchase dates.' if order == 'newest' else 'Purchase dates from your public Bandcamp collection where available; unmatched records follow.' if order == 'recent_purchased' else ''
         self.emit(albums=sorted(self.state['albums'], key=key), collectionNotice=notice)
 
-    def start_metadata(self):
+    def start_metadata(self, mode='cached'):
         if self.metadata_task:
             self.metadata_task.cancel()
         if not self.config.values['metadata_enrichment'] or not self.api:
@@ -600,24 +678,55 @@ class App:
             from .metadata import MetadataCache
             if self.metadata_cache is None:
                 self.metadata_cache = MetadataCache()
-            self.emit(metadataBusy=True)
+            self.emit(metadataBusy=mode != 'cached', metadataJob={'status':'running' if mode != 'cached' else 'cached', 'total':len(self.state['albums']), 'processed':0})
+            def progress(result):
+                if generation == self.generation and (result['processed'] % 10 == 0 or result['processed'] == result['total']):
+                    self.emit(metadataJob={'status':'running' if mode != 'cached' else 'cached', **result})
             def patch(album_id, tags):
                 if generation == self.generation:
                     self.emit(albums=[{**a, 'tags': tags} if str(a['id']) == str(album_id) else a for a in self.state['albums']], tagSource='Bandcamp genres + MusicBrainz tags')
             try:
-                result = await self.metadata_cache.enrich(self.state['albums'], lambda: self.config.values['metadata_enrichment'] and generation == self.generation, patch)
-                self.emit(metadataNotice=result.get('notice', ''))
+                result = await self.metadata_cache.enrich(self.state['albums'], lambda: self.config.values['metadata_enrichment'] and generation == self.generation, patch, on_progress=progress, cached_only=mode == 'cached', force=mode == 'all')
+                self.emit(metadataNotice=result.get('notice', ''), metadataJob={'status':'complete', **result, 'lastCompletedAt':int(time.time())})
             except (OSError, ValueError):
                 self.emit(metadataNotice='Metadata enrichment is unavailable; your collection still works.')
             finally:
+                from .cache import Cache
+                await asyncio.to_thread(Cache().prune_total, self.config.values['cache_budget_mb'] * 1024 * 1024)
                 self.emit(metadataBusy=False)
         self.metadata_task = self.task(run())
+
+    async def load_playlists(self, api, generation):
+        try:
+            playlists = await asyncio.to_thread(api.playlists)
+        except (APIError, OSError, ValueError):
+            return
+        if generation == self.generation and api is self.api:
+            self.emit(playlists=playlists)
+
+    async def load_links(self, api, generation):
+        from .links import load_public_links
+        url = self.config.values['profile_url']
+        try:
+            links = await asyncio.to_thread(load_public_links, url, list(self.state['albums']), api.username)
+        except (OSError, ValueError, UnicodeError):
+            return
+        if generation == self.generation and api is self.api and url == self.config.values['profile_url']:
+            from .cache import Cache
+            await asyncio.to_thread(Cache().prune_total, self.config.values['cache_budget_mb'] * 1024 * 1024)
+            self.emit(albums=[{**album, **links.get(str(album['id']), {})} for album in self.state['albums']])
+            if self.state['collectionOrder'] == 'recent_purchased': self.sort_collection()
+            detail = self.state.get('album')
+            if detail and str(detail.get('id')) in links:
+                self.emit(album={**detail, **links[str(detail['id'])]})
 
     async def load_profile(self, api, generation):
         from .profile import load_profile
         url = self.config.values['profile_url']
         profile = await asyncio.to_thread(load_profile, api, url)
         if generation == self.generation and url == self.config.values['profile_url']:
+            from .cache import Cache
+            await asyncio.to_thread(Cache().prune_total, self.config.values['cache_budget_mb'] * 1024 * 1024)
             self.emit(profile=profile)
 
     async def close(self):

@@ -138,13 +138,13 @@ class MetadataCache:
                 seconds = 60
         self._retry_at = self.clock() + max(60, seconds)
 
-    async def enrich(self, albums, enabled, on_patch):
+    async def enrich(self, albums, enabled, on_patch, *, on_progress=None, cached_only=False, force=False):
         """Apply tags serially while enabled(); return enriched/cached counts and notice.
 
         on_patch(album_id, list[str]) is synchronous. Disabled runs do not apply even
         cached tags. Network and parse errors never become cached negative matches.
         """
-        result = {'enriched': 0, 'cached': 0, 'notice': ''}
+        result = {'enriched': 0, 'cached': 0, 'unmatched': 0, 'ambiguous': 0, 'processed': 0, 'total': len(albums), 'notice': ''}
         async with self._lock:
             if not enabled():
                 return result
@@ -157,10 +157,14 @@ class MetadataCache:
                     continue
                 key = hashlib.sha256(json.dumps([artist, title]).encode()).hexdigest()
                 cached = self.entries.get(key)
-                if cached and cached['expires'] > self.clock():
+                if cached and not force and cached['expires'] > self.clock():
                     tags = cached['tags']
                     result['cached'] += 1
                 else:
+                    if cached_only:
+                        result['processed'] += 1
+                        if on_progress: on_progress(result.copy())
+                        continue
                     if self.clock() < self._retry_at:
                         result['notice'] = 'MusicBrainz is busy. Try enrichment again later.'
                         continue
@@ -183,6 +187,8 @@ class MetadataCache:
                                 if MBID.fullmatch(id):
                                     matches.add(id)
                         tags = []
+                        if len(matches) > 1 or int(search.get('count', len(groups))) > len(groups):
+                            result['ambiguous'] += 1
                         # Never accept a result set that may hide a second exact match.
                         if len(matches) == 1 and int(search.get('count', len(groups))) <= len(groups):
                             detail = await self._get('release-group/' + next(iter(matches)), {'inc': 'tags'}, enabled)
@@ -209,6 +215,10 @@ class MetadataCache:
                 if tags and enabled():
                     on_patch(album['id'], list(tags))
                     result['enriched'] += 1
+                else:
+                    result['unmatched'] += 1
+                result['processed'] += 1
+                if on_progress: on_progress(result.copy())
             if not result['notice'] and enabled():
                 result['notice'] = f"MusicBrainz tags available for {result['enriched']} records."
         return result

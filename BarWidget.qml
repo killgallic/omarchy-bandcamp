@@ -1,16 +1,28 @@
 import QtQuick
+import "TextFormat.js" as Format
 import Quickshell
 import qs.Ui as Ui
 import qs.Commons
 
 Ui.BarWidget {
     id: root
-    moduleName: 'its.bandcamp'
+    moduleName: 'killgallic.bandcamp'
     readonly property var player: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
     readonly property var config: player ? player.state.config || ({}) : ({})
     property bool popupOpen: false
     readonly property bool opened: popupOpen
     function open() { if (config.mini_player_enabled === false) { openLibrary(); return }; if (player) player.start(); popupOpen = true }
+    function runAction(action) {
+        if (action === 'mini' && config.mini_player_enabled === false) action = 'library'
+        if (action === 'mini') {
+            if (player && player.libraryVisible) player.libraryToggleRequested()
+            toggle()
+        } else if (action === 'library') {
+            close()
+            if (player && player.libraryVisible) player.libraryToggleRequested()
+            else openLibrary()
+        } else if (action === 'play_pause' && player) player.send('toggle')
+    }
     function close() { popupOpen = false }
     function toggle() { if (popupOpen) close(); else open() }
     function openLibrary() {
@@ -22,7 +34,7 @@ Ui.BarWidget {
         function onMiniRequested() { root.open() }
         function onStateChanged() { if (root.config.mini_player_enabled === false) root.close() }
     }
-    implicitWidth: vertical ? barSize : Math.min(240, content.implicitWidth + 24)
+    implicitWidth: vertical ? barSize : (config.bar_display === 'icon' ? 42 : (config.bar_width || 240))
     implicitHeight: barSize
     Row {
         id: content
@@ -36,14 +48,16 @@ Ui.BarWidget {
             sourceSize: Qt.size(54, 36)
             smooth: true
         }
-        Text {
+        NowPlayingText {
             id: label
             anchors.verticalCenter: parent.verticalCenter
             visible: !root.vertical && root.config.bar_display !== 'icon'
-            width: Math.min(186, implicitWidth)
-            text: root.player && root.player.state.current && root.player.state.current.title ? (root.player.state.playing ? '▶  ' : 'Ⅱ  ') + root.player.state.current.title : 'bandcamp'
-            textFormat: Text.PlainText
-            elide: Text.ElideRight
+            width: Math.max(40, root.width - (root.config.bar_display === 'title' ? 24 : 49))
+            text: Format.render(root.config.bar_preset === 'custom' ? root.config.bar_format : Format.presets[root.config.bar_preset || 'compact'], root.player ? root.player.state.current : null, root.player && root.player.state.playing)
+            playing: root.player && root.player.state.playing
+            reducedMotion: root.config.reduced_motion === true
+            mode: root.config.bar_text_mode || 'marquee'
+            speed: root.config.bar_scroll_speed || 30
             color: root.bar ? root.bar.foreground : Color.foreground
             font.family: Style.font.family
             font.pixelSize: Style.font.body
@@ -55,10 +69,7 @@ Ui.BarWidget {
         acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
         onClicked: event => {
             if (event.button === Qt.MiddleButton) { if (root.player) root.player.send('toggle') }
-            else if (event.button === Qt.RightButton) root.openLibrary()
-            else if (root.config.bar_click === 'mini') root.toggle()
-            else if (root.config.bar_click === 'library') root.openLibrary()
-            else { root.close(); if (root.player && root.player.libraryVisible) root.player.libraryToggleRequested(); else root.openLibrary() }
+            else root.runAction(event.button === Qt.RightButton ? (root.config.bar_right_action || 'mini') : (root.config.bar_left_action || 'library'))
         }
         onWheel: event => { if (root.player) root.player.send(event.angleDelta.y > 0 ? 'previous' : 'next') }
     }

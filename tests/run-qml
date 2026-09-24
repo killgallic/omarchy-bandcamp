@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+runner=""
+if [[ -x /usr/lib/qt6/bin/qmltestrunner ]]; then runner=/usr/lib/qt6/bin/qmltestrunner; else runner="$(command -v qmltestrunner || true)"; fi
+if [[ -z $runner ]]; then printf '%s\n' 'Install Qt QML Test runner (qt6-declarative).' >&2; exit 1; fi
+QT_QPA_PLATFORM=offscreen QT_QUICK_CONTROLS_STYLE=Basic QT_QPA_PLATFORMTHEME=generic "$runner" -input tests/qml

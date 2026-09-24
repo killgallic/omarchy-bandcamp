@@ -1,0 +1,27 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    container: archlinux:latest
+    steps:
+      - name: Install system dependencies
+        run: pacman -Syu --noconfirm git python uv mpv dbus qt6-declarative
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Install locked Python dependencies
+        run: uv sync --frozen
+      - name: Python and playback checks
+        run: tests/run-python
+      - name: QML checks
+        run: tests/run-qml
+      - name: Package checks
+        run: tests/check-package

@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Small public-source packaging gate; no personal data read."""
+import json
+import os
+from pathlib import Path
+root = Path(__file__).resolve().parents[1]
+manifest = json.loads((root/'manifest.json').read_text())
+project = (root/'pyproject.toml').read_text()
+assert manifest['version'] in project
+assert manifest['id'] and '.' in manifest['id']
+for path in [*manifest['entryPoints'].values(), 'bin/backend','bin/setup','bin/omarchy-bandcamp','README.md','LICENSE','uv.lock']:
+    assert (root/path).is_file(), path
+for path in ['bin/backend','bin/setup','bin/omarchy-bandcamp']:
+    assert os.access(root/path, os.X_OK), path
+tracked = os.popen('git ls-files').read().splitlines()
+for path in tracked:
+    assert not any(part in Path(path).parts for part in ('.venv','.cache','__pycache__'))
+    assert not path.endswith(('.png','.jpg','.jpeg')) or path.startswith('assets/'), path
+print('Package manifest and clean-source checks passed.')

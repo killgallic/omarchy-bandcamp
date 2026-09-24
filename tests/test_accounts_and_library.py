@@ -54,3 +54,18 @@ class LibraryTests(unittest.IsolatedAsyncioTestCase):
         await self.app.handle({'cmd': 'enqueue_track', 'id': 'album', 'index': 1})
         self.assertEqual(self.app.state['queue'], [{'id': 'b'}])
         self.assertFalse(self.app.state['playing'])
+
+    async def test_recently_purchased_uses_verified_public_dates_and_leaves_unknown_last(self):
+        self.app.emit(albums=[{'id':'old','purchasedAt':'01 Jan 2020 00:00:00 GMT'},
+                              {'id':'new','purchasedAt':'01 Jan 2024 00:00:00 GMT'}, {'id':'unknown','created':'01 Jan 2025 00:00:00 GMT'}])
+        await self.app.handle({'cmd':'collection_order','order':'recent_purchased'})
+        self.assertEqual([a['id'] for a in self.app.state['albums']],['new','old','unknown'])
+
+    async def test_play_album_track_id_ignores_playlist_row_index(self):
+        class API:
+            def album(self, id): return {'id':id,'song':[{'id':'first'},{'id':'wanted'}]}
+        self.app.api=API()
+        async def fake_play(): pass
+        with patch.object(self.app,'play_current',fake_play), patch.object(self.app,'artwork',AsyncMock(return_value='')):
+            await self.app.handle({'cmd':'play_album','id':'album','index':0,'trackId':'wanted'})
+        self.assertEqual(self.app.queue.current['id'],'wanted')

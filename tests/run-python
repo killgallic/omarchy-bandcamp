@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+test -x .venv/bin/python || { printf '%s\n' 'Run bin/setup first.' >&2; exit 1; }
+test_dir="$(mktemp -d)"
+trap 'rm -rf "$test_dir"' EXIT
+XDG_CONFIG_HOME="$test_dir/config" XDG_CACHE_HOME="$test_dir/cache" XDG_STATE_HOME="$test_dir/state" BANDCAMP_INTEGRATION=1 dbus-run-session -- .venv/bin/python -m unittest discover -s tests -v
