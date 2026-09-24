@@ -210,7 +210,7 @@ Rectangle {
                     Action { required property var modelData; text: modelData.kind + ': ' + modelData.value + '  ×'; width: Math.min(implicitWidth, root.width - 48); implicitHeight: 30; Accessible.name: 'Remove ' + modelData.kind + ' ' + modelData.value; onClicked: root.removeFilter(modelData.kind, modelData.value) }
                 }
             }
-            Copy { objectName: 'collectionHint'; visible: root.page === 'collection'; text: root.state.collectionNotice || 'Wheel to scroll · Middle-click, then move the pointer to autoscroll'; color: root.muted; font.pixelSize: 11 }
+            Copy { objectName: 'collectionHint'; visible: root.page === 'collection' && !!root.state.collectionNotice; text: root.state.collectionNotice || ''; color: root.muted; font.pixelSize: 11 }
             StackLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 currentIndex: root.page === 'collection' ? 0 : root.page === 'album' ? 1 : root.page === 'queue' ? 2 : root.page === 'playlists' ? 3 : root.page === 'settings' ? 4 : 5

@@ -107,6 +107,11 @@ TestCase {
         const hint = findChild(player, 'collectionHint')
         verify(hint)
         verify(hint.text.indexOf('MusicBrainz') < 0)
+        verify(!hint.visible)
+        service.state = Object.assign({}, service.state, {collectionNotice: 'Newest first'})
+        wait(20)
+        compare(hint.text, 'Newest first')
+        verify(hint.visible)
         player.page = 'settings'
         wait(20)
         const status = findChild(player, 'metadataStatus')
