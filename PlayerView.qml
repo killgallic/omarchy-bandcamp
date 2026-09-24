@@ -51,8 +51,8 @@ Rectangle {
         else if (kind === 'Genre') selectedGenres = selectedGenres.filter(v => v !== value)
         else selectedTags = selectedTags.filter(v => v !== value)
     }
-    signal minimizeRequested()
-    signal quitRequested()
+    signal quitConfirmed(bool disableConfirmation)
+    function confirmQuit() { quitDialog.open() }
     color: background
     component Action: ActionButton {
         foreground: root.foreground; surface: root.background; accent: root.accent
@@ -93,10 +93,26 @@ Rectangle {
             BusyIndicator { Layout.preferredWidth: 22; Layout.preferredHeight: 22; running: !!(root.state.loading || root.state.busy || root.state.metadataBusy); visible: running; ToolTip.visible: hovered; ToolTip.text: root.state.playbackStatus || 'Loading…' }
             Action { objectName: 'notificationHistoryButton'; text: 'Activity' + (root.notificationCenter && root.notificationCenter.unresolvedCount ? ' · ' + root.notificationCenter.unresolvedCount : ''); visible: !!root.notificationCenter && root.notificationCenter.history.length > 0; Accessible.name: 'Notification history'; onClicked: activity.open() }
             Action { text: 'Settings'; onClicked: root.page = 'settings' }
-            Action { text: 'Mini'; visible: (root.state.config || {}).mini_player_enabled !== false; Accessible.name: 'Open mini player'; onClicked: root.minimizeRequested() }
-            Action { text: 'Quit'; onClicked: root.quitRequested() }
+            Action { objectName: 'quitButton'; text: 'Quit'; onClicked: root.service.requestQuit() }
         }
         Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: root.muted; opacity: 0.2 }
+        RowLayout {
+            objectName: 'topNavigation'
+            visible: !!root.state.connected
+            Layout.fillWidth: true
+            Layout.leftMargin: 24; Layout.rightMargin: 24
+            Layout.topMargin: 12; Layout.bottomMargin: 12
+            spacing: 8
+            Action { objectName: 'homeNav'; text: '⌂'; font.pixelSize: 22; Layout.preferredWidth: 38; Accessible.name: 'Home'; ToolTip.text: 'Home'; ToolTip.visible: hovered; emphasized: root.page === 'home'; onClicked: root.goHome() }
+            Action { objectName: 'collectionNav'; text: 'Collection'; emphasized: root.page === 'collection' || root.page === 'album'; onClicked: root.page = 'collection' }
+            Action { objectName: 'playlistsNav'; text: 'Playlists'; emphasized: root.page === 'playlists'; onClicked: { root.page = 'playlists'; root.service.send('playlists') } }
+            Action { objectName: 'queueNav'; text: 'Queue' + ((root.state.queue || []).length ? ' · ' + root.state.queue.length : ''); emphasized: root.page === 'queue'; onClicked: root.page = 'queue' }
+            Item { Layout.fillWidth: true }
+            Copy { text: root.state.playbackStatus || ''; visible: !!text && root.width > 850; color: root.muted; font.pixelSize: 12 }
+            Action { text: 'Retry'; visible: !!root.state.error; onClicked: root.service.send('retry') }
+            Action { text: 'Refresh'; enabled: !root.state.busy; onClicked: root.service.send('refresh') }
+            Action { text: 'Sign out'; enabled: !root.state.busy; onClicked: { root.page = 'home'; root.service.send('logout') } }
+        }
         Rectangle {
             Layout.fillWidth: true
             implicitHeight: message.implicitHeight + 24
@@ -166,17 +182,6 @@ Rectangle {
             Layout.fillWidth: true; Layout.fillHeight: true
             Layout.margins: 24
             spacing: 20
-            RowLayout {
-                Layout.fillWidth: true
-                Action { text: '← Back to records'; visible: root.page === 'album'; onClicked: root.page = 'collection' }
-                Action { text: 'Playlists'; emphasized: root.page === 'playlists'; onClicked: { root.page = 'playlists'; root.service.send('playlists') } }
-                Action { text: 'Queue' + ((root.state.queue || []).length ? ' · ' + root.state.queue.length : ''); emphasized: root.page === 'queue'; onClicked: root.page = 'queue' }
-                Item { Layout.fillWidth: true }
-                Copy { text: root.state.playbackStatus || ''; color: root.muted; font.pixelSize: 12 }
-                Action { text: 'Retry'; visible: !!root.state.error; onClicked: root.service.send('retry') }
-                Action { text: 'Refresh'; enabled: !root.state.busy; onClicked: root.service.send('refresh') }
-                Action { text: 'Sign out'; enabled: !root.state.busy; onClicked: { root.page = 'home'; root.service.send('logout') } }
-            }
             RowLayout {
                 visible: root.page === 'collection'
                 Layout.fillWidth: true
@@ -345,6 +350,31 @@ Rectangle {
         Transport { Layout.fillWidth: true; visible: !!root.state.connected; service: root.service; foreground: root.foreground; background: root.background; accent: root.accent; muted: root.muted }
     }
     Connections { target: root.service; ignoreUnknownSignals: true; function onHomeRequested() { root.goHome() } }
+    Dialog {
+        id: quitDialog
+        objectName: 'quitConfirmation'
+        anchors.centerIn: parent
+        width: Math.min(420, root.width - 32)
+        modal: true
+        title: 'Quit Bandcamp?'
+        padding: 20
+        closePolicy: Popup.CloseOnEscape
+        palette.windowText: root.foreground
+        background: Rectangle { color: root.background; radius: 8; border.color: root.muted; border.width: 1 }
+        onOpened: dontAskAgain.checked = false
+        onAccepted: root.quitConfirmed(dontAskAgain.checked)
+        contentItem: ColumnLayout {
+            spacing: 14
+            Text { Layout.fillWidth: true; text: 'Playback will stop. You can open Bandcamp again from the Omarchy bar.'; wrapMode: Text.Wrap; color: root.foreground }
+            CheckBox { id: dontAskAgain; text: "Don't ask me again"; palette.windowText: root.foreground; palette.text: root.foreground; palette.highlight: root.accent }
+        }
+        footer: RowLayout {
+            spacing: 12
+            ActionButton { text: 'Keep listening'; foreground: root.foreground; surface: root.background; accent: root.accent; onClicked: quitDialog.reject() }
+            Item { Layout.fillWidth: true }
+            ActionButton { text: 'Quit Bandcamp'; emphasized: true; foreground: root.foreground; surface: root.background; accent: root.accent; onClicked: quitDialog.accept() }
+        }
+    }
     ItemContextMenu {
         id: itemMenu; objectName: 'itemContextMenu'; service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent
         onPlaylistRequested: source => { playlistPicker.source = source; playlistPicker.open() }

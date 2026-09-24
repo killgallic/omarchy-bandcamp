@@ -54,6 +54,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | Key | Default | Behavior |
 | --- | --- | --- |
 | `remember_login` | `true` | Restore generated credentials from Secret Service |
+| `confirm_quit` | `true` | Ask before quitting; the dialog can turn this off, and Settings can turn it back on |
 | `profile_url` | empty | Public `https://bandcamp.com/yourname` URL for cached avatar |
 | `bar_display` | `icon_title` | `icon`, `title`, or `icon_title` |
 | `bar_compact_when_idle` | `true` | Shrink the bar entry to its label when no track is selected |
@@ -69,7 +70,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `stream_retries` | `2` | Automatic attempts after stream failure, 0–5 |
 | `metadata_enrichment` | `false` | Optional MusicBrainz tags |
 
-Left-click the bar icon to open/minimize the library by default; right-click opens the mini-player, middle-click toggles playback, and wheel skips tracks. Mini opens compact controls. Closing/minimizing keeps playback running; Quit ends the process.
+Left-click the bar entry to open or close the full player by default; right-click opens the mini-player without closing the full player, middle-click toggles playback, and wheel skips tracks. Home, Collection, Playlists, and Queue live at the top of the full player. Closing the window keeps playback running; Quit stops playback and asks for confirmation by default.
 
 ## Collection and playback
 

@@ -4,8 +4,33 @@ import '../..'
 TestCase {
     name: 'Player'; when: windowShown; visible: true
     width: 1050; height: 900
-    QtObject { id: service; property var state: ({connected: true, albums: [{id:'1',name:'One',artist:'A',genre:'House'},{id:'2',name:'Two',artist:'B',genre:'Jazz'}], queue: []}); property string processError: ''; function send(cmd,args) {} }
+    QtObject {
+        id: service
+        property var state: ({connected: true, albums: [{id:'1',name:'One',artist:'A',genre:'House'},{id:'2',name:'Two',artist:'B',genre:'Jazz'}], queue: []})
+        property string processError: ''
+        property bool quitAsked: false
+        function send(cmd,args) {}
+        function requestQuit() { quitAsked = true }
+    }
     PlayerView { id: player; anchors.fill: parent; service: service }
+    function test_top_navigation_and_quit_confirmation() {
+        player.page = 'home'
+        const home = findChild(player, 'homeNav')
+        const collection = findChild(player, 'collectionNav')
+        const playlists = findChild(player, 'playlistsNav')
+        const queue = findChild(player, 'queueNav')
+        verify(home && collection && playlists && queue)
+        collection.clicked(); compare(player.page, 'collection')
+        playlists.clicked(); compare(player.page, 'playlists')
+        queue.clicked(); compare(player.page, 'queue')
+        home.clicked(); compare(player.page, 'home')
+        findChild(player, 'quitButton').clicked()
+        verify(service.quitAsked)
+        player.confirmQuit()
+        verify(findChild(player, 'quitConfirmation').opened)
+        findChild(player, 'quitConfirmation').reject()
+        service.quitAsked = false
+    }
     function test_collection_scroll_survives_metadata_and_album_navigation() {
         const original = service.state
         const records = Array.from({length: 100}, (_, i) => ({id: String(i), name: 'Record ' + i, artist: 'Artist'}))

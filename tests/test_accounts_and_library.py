@@ -30,6 +30,12 @@ class LibraryTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.app.state['config']['bar_display'], 'icon')
         self.assertEqual(self.app.state['config']['large_player_width'], 1100)
 
+    async def test_quit_can_persist_do_not_ask_again_before_stopping(self):
+        from bandcamp.config import Config
+        await self.app.handle({'cmd': 'quit', 'disable_confirmation': True})
+        self.assertTrue(self.app.stop.is_set())
+        self.assertFalse(Config(self.app.config.path).values['confirm_quit'])
+
     async def test_recently_added_sorts_real_bandcamp_dates_without_losing_albums(self):
         self.app.emit(albums=[{'id': 'a', 'created': '01 Nov 2020 00:00:00 GMT'},
                               {'id': 'b', 'created': '13 Jan 2024 00:00:00 GMT'}, {'id': 'c'}])

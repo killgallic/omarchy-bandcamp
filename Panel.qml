@@ -26,6 +26,16 @@ Item {
             if (root.shell) root.shell.summon('killgallic.bandcamp', '{}')
             else root.open('{}')
         }
+        function onQuitConfirmationRequested() {
+            if (!root.opened) {
+                if (root.shell) root.shell.summon('killgallic.bandcamp', '{}')
+                else root.open('{}')
+            }
+            Qt.callLater(() => playerView.confirmQuit())
+        }
+        function onStopped() {
+            if (root.service && root.service.quitting) root.requestClose()
+        }
     }
     FloatingWindow {
         title: 'Bandcamp — Collection'
@@ -36,12 +46,12 @@ Item {
         color: Color.background
         onVisibleChanged: if (!visible && root.opened) root.requestClose()
         PlayerView {
+            id: playerView
             anchors.fill: parent
             service: root.service
             foreground: Color.foreground; background: Color.background; accent: Color.accent; muted: Color.muted
             fontFamily: Style.font.family
-            onMinimizeRequested: { root.requestClose(); if (root.service) root.service.miniRequested() }
-            onQuitRequested: { if (root.service) root.service.quit(); root.requestClose() }
+            onQuitConfirmed: disableConfirmation => { if (root.service) root.service.quit(disableConfirmation); root.requestClose() }
         }
     }
 }

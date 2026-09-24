@@ -16,7 +16,6 @@ Ui.BarWidget {
     function runAction(action) {
         if (action === 'mini' && config.mini_player_enabled === false) action = 'library'
         if (action === 'mini') {
-            if (player && player.libraryVisible) player.libraryToggleRequested()
             toggle()
         } else if (action === 'library') {
             close()
@@ -32,7 +31,6 @@ Ui.BarWidget {
     }
     Connections {
         target: root.player
-        function onMiniRequested() { root.open() }
         function onStateChanged() { if (root.config.mini_player_enabled === false) root.close() }
     }
     implicitWidth: vertical ? barSize : (config.bar_display === 'icon' ? 42 :
@@ -91,7 +89,7 @@ Ui.BarWidget {
             service: root.player
             foreground: Color.foreground; background: Color.background; accent: Color.accent; muted: Color.muted
             onOpenRequested: root.openLibrary()
-            onQuitRequested: { if (root.player) root.player.quit(); root.close() }
+            onQuitRequested: { if (root.player) root.player.requestQuit(); root.close() }
         }
     }
 }

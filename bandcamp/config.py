@@ -9,7 +9,7 @@ from urllib.parse import urlsplit
 DEFAULTS = dict(schema_version=1, bar_left_action='library', bar_right_action='mini',
                 bar_preset='compact', bar_format='{Artist} — {Song Name}', bar_text_mode='marquee',
                 bar_width=240, bar_scroll_speed=30, bar_compact_when_idle=True, reduced_motion=False, cache_budget_mb=256, cache_ttl_minutes=15,
-                remember_login=True, bar_display='icon_title', bar_click='toggle_library',
+                remember_login=True, confirm_quit=True, bar_display='icon_title', bar_click='toggle_library',
                 mini_player_enabled=True, large_player_width=1000, large_player_height=760,
                 show_discover_links=True, stream_retries=2, metadata_enrichment=False, profile_url='', mini_player_width=460, mini_show_artwork=True, wheel_scroll_pixels=360, wheel_acceleration=True)
 

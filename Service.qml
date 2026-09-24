@@ -38,8 +38,8 @@ Item {
         } else if (event.event === 'raise') raiseRequested()
     }
     signal libraryToggleRequested()
-    signal miniRequested()
     signal homeRequested()
+    signal quitConfirmationRequested()
     signal raiseRequested()
     signal stopped()
     function start() {
@@ -53,7 +53,11 @@ Item {
         var message = Object.assign({}, args || {}, {cmd: cmd})
         backend.write(JSON.stringify(message) + '\n')
     }
-    function quit() { quitting = true; send('quit') }
+    function requestQuit() {
+        if ((state.config || {}).confirm_quit === false) quit(false)
+        else quitConfirmationRequested()
+    }
+    function quit(disableConfirmation) { quitting = true; send('quit', {disable_confirmation: disableConfirmation === true}) }
     Process {
         id: backend
         command: [root.directory + '/bin/backend']

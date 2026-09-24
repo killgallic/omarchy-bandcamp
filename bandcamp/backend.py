@@ -200,6 +200,9 @@ class App:
             elif cmd == 'hello':
                 self.emit()
             elif cmd == 'quit':
+                if message.get('disable_confirmation') is True:
+                    async with self.network_lock:
+                        await asyncio.to_thread(self.config.update, {'confirm_quit': False})
                 self.stop.set()
             elif cmd == 'play_index':
                 self.queue.select(int(message['index']))

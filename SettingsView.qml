@@ -33,6 +33,7 @@ ScrollView {
         Text { Layout.fillWidth: true; text: (root.service.state.profile || {}).notice || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap }
         Text { Layout.fillWidth: true; text: root.service.state.metadataNotice || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap }
         CheckBox { text: 'Remember login securely'; checked: root.config.remember_login !== false; palette.windowText: root.foreground; onClicked: root.configure('remember_login', checked) }
+        CheckBox { text: 'Ask before quitting'; checked: root.config.confirm_quit !== false; palette.windowText: root.foreground; onClicked: root.configure('confirm_quit', checked) }
         Text { text: 'Player windows'; color: root.foreground; font.pixelSize: 19; font.bold: true }
         CheckBox { text: 'Enable mini player'; checked: root.config.mini_player_enabled !== false; palette.windowText: root.foreground; onClicked: root.configure('mini_player_enabled', checked) }
         RowLayout {
