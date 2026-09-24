@@ -62,4 +62,14 @@ TestCase {
         verify(!assist.scrolling)
         assist.enabled = true
     }
+    function test_high_resolution_wheel_respects_speed() {
+        assist.wheelStep = 1200
+        assist.wheelAcceleration = false
+        assist.resetWheel()
+        verify(assist.mouseWheelDistance(-15, -2, 1000) >= 300)
+        assist.resetWheel()
+        verify(assist.mouseWheelDistance(0, -2, 1000) >= 200)
+        assist.wheelStep = 360
+        assist.wheelAcceleration = true
+    }
 }

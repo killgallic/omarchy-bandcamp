@@ -89,6 +89,21 @@ TestCase {
         compare(player.genreOptions.map(o => o.value).join(','), 'Zebra,Ambient,Blues')
         service.state = original
     }
+    function test_musicbrainz_coverage_is_only_in_tag_settings() {
+        const original = service.state
+        service.state = Object.assign({}, original, {metadataNotice: 'MusicBrainz tags available for 7 records.', config: {metadata_enrichment: true}})
+        player.page = 'collection'
+        wait(20)
+        const hint = findChild(player, 'collectionHint')
+        verify(hint)
+        verify(hint.text.indexOf('MusicBrainz') < 0)
+        player.page = 'settings'
+        wait(20)
+        const status = findChild(player, 'metadataStatus')
+        verify(status)
+        compare(status.text, 'MusicBrainz tags available for 7 records.')
+        service.state = original
+    }
     function test_filters() {
         compare(player.records.length, 2)
         player.selectedArtists = ['A']; compare(player.records.length, 1)

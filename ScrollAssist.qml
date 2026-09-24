@@ -17,7 +17,11 @@ Item {
     function mouseWheelDistance(angle, pixels, now) {
         // Mouse wheels can supply both deltas: prefer their angle so the configured
         // distance is not bypassed by the small pixel delta on high-resolution mice.
-        const base = angle ? -angle / 120 * wheelStep : -pixels * wheelStep / 120
+        // Some mice send several small angle or pixel deltas per wheel motion.
+        // A concave curve keeps those events useful at the chosen speed while a
+        // standard 120-unit notch still travels exactly wheelStep pixels.
+        const units = angle ? -angle / 120 : -pixels / 15
+        const base = Math.sign(units) * Math.pow(Math.abs(units), 0.55) * wheelStep
         if (!base) return 0
         const direction = Math.sign(base)
         const elapsed = now - lastWheelTime

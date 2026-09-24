@@ -11,8 +11,16 @@ ActionButton {
     property bool multiple: true
     property bool searchable: true
     property bool showCounts: true
+    property string sortMode: ''
     readonly property bool isOpen: popup.opened
-    readonly property var filteredOptions: options.filter(option => option.label.toLowerCase().indexOf(search.text.toLowerCase()) >= 0)
+    readonly property var filteredOptions: {
+        const values = options.filter(option => option.label.toLowerCase().indexOf(search.text.toLowerCase()) >= 0)
+        if (sortMode === 'count_desc' || sortMode === 'count_asc')
+            return values.sort((a, b) => (sortMode === 'count_desc' ? b.count - a.count : a.count - b.count) || a.label.localeCompare(b.label))
+        if (sortMode === 'alpha_asc' || sortMode === 'alpha_desc')
+            return values.sort((a, b) => (sortMode === 'alpha_asc' ? 1 : -1) * a.label.localeCompare(b.label))
+        return values
+    }
     signal selectionChanged(var values)
     text: title + (multiple && selectedValues.length ? ' · ' + selectedValues.length : '') + '  ▾'
     emphasized: selectedValues.length > 0 && multiple
@@ -35,7 +43,7 @@ ActionButton {
         y: root.height + 6
         width: Math.min(340, root.Window.window ? root.Window.window.width - 24 : 340)
         height: Math.min(root.Window.window ? root.Window.window.height - 32 : 420,
-                         (root.searchable ? 112 : 58) + Math.min(8, Math.max(1, root.filteredOptions.length)) * 38)
+                         (root.searchable ? 112 : 58) + (root.showCounts ? 36 : 0) + Math.min(8, Math.max(1, root.filteredOptions.length)) * 38)
         padding: 10
         margins: 12
         popupType: Popup.Item
@@ -63,6 +71,27 @@ ActionButton {
                 onTextChanged: { choices.currentIndex = 0; choices.positionViewAtBeginning() }
                 Keys.onDownPressed: { choices.forceActiveFocus(); choices.currentIndex = 0 }
                 Keys.onReturnPressed: if (root.filteredOptions.length) root.choose(root.filteredOptions[0])
+            }
+            RowLayout {
+                objectName: 'filterSortControls'
+                visible: root.showCounts
+                Layout.fillWidth: true
+                spacing: 4
+                Repeater {
+                    model: [{label:'Most',mode:'count_desc'}, {label:'Least',mode:'count_asc'}, {label:'A–Z',mode:'alpha_asc'}, {label:'Z–A',mode:'alpha_desc'}]
+                    ActionButton {
+                        required property var modelData
+                        text: modelData.label
+                        objectName: 'sort_' + modelData.mode
+                        Accessible.name: 'Sort ' + root.title.toLowerCase() + ' ' + modelData.label
+                        Layout.fillWidth: true
+                        implicitHeight: 26
+                        font.pixelSize: 11
+                        emphasized: root.sortMode === modelData.mode
+                        foreground: root.foreground; surface: root.surface; accent: root.accent
+                        onClicked: { root.sortMode = modelData.mode; choices.currentIndex = 0; choices.positionViewAtBeginning() }
+                    }
+                }
             }
             ListView {
                 id: choices; objectName: 'filterOptions'

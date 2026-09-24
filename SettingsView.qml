@@ -31,7 +31,6 @@ ScrollView {
             ActionButton { text: 'Save profile'; foreground: root.foreground; surface: root.surface; accent: root.accent; onClicked: root.configure('profile_url', profileUrl.text.trim()) }
         }
         Text { Layout.fillWidth: true; text: (root.service.state.profile || {}).notice || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap }
-        Text { Layout.fillWidth: true; text: root.service.state.metadataNotice || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap }
         CheckBox { text: 'Remember login securely'; checked: root.config.remember_login !== false; palette.windowText: root.foreground; onClicked: root.configure('remember_login', checked) }
         CheckBox { text: 'Ask before quitting'; checked: root.config.confirm_quit !== false; palette.windowText: root.foreground; onClicked: root.configure('confirm_quit', checked) }
         Text { text: 'Player windows'; color: root.foreground; font.pixelSize: 19; font.bold: true }
@@ -109,6 +108,7 @@ ScrollView {
         Text { text: 'Collection tags'; color: root.foreground; font.pixelSize: 19; font.bold: true }
         CheckBox { text: 'Enrich tags with MusicBrainz'; checked: root.config.metadata_enrichment === true; palette.windowText: root.foreground; onClicked: root.configure('metadata_enrichment', checked) }
         Text { Layout.fillWidth: true; text: 'Optional: sends artist and album names to MusicBrainz and caches matches.'; color: root.foreground; wrapMode: Text.Wrap; font.pixelSize: 12 }
+        Text { objectName: 'metadataStatus'; Layout.fillWidth: true; text: root.service.state.metadataNotice || ''; visible: !!text; color: root.foreground; wrapMode: Text.Wrap }
         RowLayout {
             visible: root.config.metadata_enrichment === true
             ActionButton { text: root.service.state.metadataBusy ? 'Scanning…' : 'Generate tags'; enabled: !root.service.state.metadataBusy; foreground: root.foreground; surface: root.surface; accent: root.accent; onClicked: root.service.send('generate_tags', {mode:'missing'}) }

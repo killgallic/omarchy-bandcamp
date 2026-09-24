@@ -195,9 +195,9 @@ Rectangle {
             }
             RowLayout {
                 visible: root.page === 'collection'; Layout.fillWidth: true; spacing: 8
-                FilterDropdown { title: 'Artist'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent }
-                FilterDropdown { title: 'Genre'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent }
-                FilterDropdown { title: 'Tags'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
+                FilterDropdown { title: 'Artist'; sortMode: 'alpha_asc'; options: root.artistOptions; selectedValues: root.selectedArtists; onSelectionChanged: values => root.selectedArtists = values; foreground: root.foreground; surface: root.background; accent: root.accent }
+                FilterDropdown { title: 'Genre'; sortMode: 'count_desc'; options: root.genreOptions; selectedValues: root.selectedGenres; onSelectionChanged: values => root.selectedGenres = values; foreground: root.foreground; surface: root.background; accent: root.accent }
+                FilterDropdown { title: 'Tags'; sortMode: 'alpha_asc'; visible: (root.state.config || {}).metadata_enrichment === true || root.selectedTags.length > 0; options: root.tagOptions; selectedValues: root.selectedTags; onSelectionChanged: values => root.selectedTags = values; foreground: root.foreground; surface: root.background; accent: root.accent; ToolTip.text: 'Optional MusicBrainz tags'; ToolTip.visible: hovered }
                 Item { Layout.fillWidth: true }
                 FilterDropdown { title: 'Sort'; text: 'Sort: ' + (root.sortOptions.find(o => o.value === (root.state.collectionOrder || 'artist')) || root.sortOptions[0]).label + '  ▾'; options: root.sortOptions; selectedValues: [root.state.collectionOrder || 'artist']; multiple: false; searchable: false; showCounts: false; onSelectionChanged: values => root.service.send('collection_order', {order: values[0]}); foreground: root.foreground; surface: root.background; accent: root.accent }
                 Action { text: 'Clear all'; visible: root.activeFilters.length > 0 || !!root.filter; onClicked: { root.selectedArtists = []; root.selectedGenres = []; root.selectedTags = []; search.clear() } }
@@ -210,7 +210,7 @@ Rectangle {
                     Action { required property var modelData; text: modelData.kind + ': ' + modelData.value + '  ×'; width: Math.min(implicitWidth, root.width - 48); implicitHeight: 30; Accessible.name: 'Remove ' + modelData.kind + ' ' + modelData.value; onClicked: root.removeFilter(modelData.kind, modelData.value) }
                 }
             }
-            Copy { visible: root.page === 'collection'; text: root.state.metadataNotice || root.state.collectionNotice || 'Wheel to scroll · Middle-click, then move the pointer to autoscroll'; color: root.muted; font.pixelSize: 11 }
+            Copy { objectName: 'collectionHint'; visible: root.page === 'collection'; text: root.state.collectionNotice || 'Wheel to scroll · Middle-click, then move the pointer to autoscroll'; color: root.muted; font.pixelSize: 11 }
             StackLayout {
                 Layout.fillWidth: true; Layout.fillHeight: true
                 currentIndex: root.page === 'collection' ? 0 : root.page === 'album' ? 1 : root.page === 'queue' ? 2 : root.page === 'playlists' ? 3 : root.page === 'settings' ? 4 : 5
