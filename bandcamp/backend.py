@@ -25,6 +25,17 @@ def public_item(item):
     return {key: item[key] for key in keys if key in item}
 
 
+def date_value(value):
+    value = str(value or '')
+    try:
+        return parsedate_to_datetime(value).timestamp()
+    except (ValueError, TypeError, OverflowError):
+        try:
+            return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
+        except (ValueError, OverflowError):
+            return 0
+
+
 class App:
     def __init__(self, emit=None):
         self.output = emit or (lambda event: print(json.dumps(event), flush=True))
@@ -38,7 +49,8 @@ class App:
                           config=self.config.values.copy(), configPath=str(self.config.path),
                           playlists=[], playlist=None, playlistBusy=False, playlistError='',
                           collectionOrder='artist', collectionNotice='', history={}, tagSource='Bandcamp genres',
-                          profile={}, metadataBusy=False, metadataNotice='', metadataJob={}, cacheStats={}, cachedCollection=None, offline=False)
+                          profile={}, metadataBusy=False, metadataNotice='', metadataJob={}, cacheStats={}, cachedCollection=None, offline=False,
+                          homeRecent=[], homeRediscover=[])
         self.player = Mpv(self.mpv_event)
         self.network_lock = asyncio.Lock()
         self.stop = asyncio.Event()
@@ -59,6 +71,11 @@ class App:
         self.notification_serial = 0
 
     def emit(self, **patch):
+        if 'albums' in patch or 'history' in patch:
+            albums = patch.get('albums', self.state['albums'])
+            history = patch.get('history', self.state['history'])
+            patch['homeRecent'] = sorted(albums, key=lambda a: (-date_value(a.get('created')), str(a.get('id', ''))))[:8]
+            patch['homeRediscover'] = sorted(albums, key=lambda a: (history.get(str(a.get('id')), {}).get('lastPlayed', 0), str(a.get('id', ''))))[:4]
         self.state.update(patch)
         self.output({'event': 'state', 'state': patch or self.state.copy()})
         if self.mpris:
@@ -642,24 +659,15 @@ class App:
     def sort_collection(self):
         order = self.state['collectionOrder']
         history = self.state['history']
-        def created(album, field='created'):
-            value = str(album.get(field, ''))
-            try:
-                return parsedate_to_datetime(value).timestamp()
-            except (ValueError, TypeError, OverflowError):
-                try:
-                    return datetime.fromisoformat(value.replace('Z', '+00:00')).timestamp()
-                except (ValueError, OverflowError):
-                    return 0
         def key(album):
             artist = str(album.get('artist', '')).casefold()
             title = str(album.get('name', '')).casefold()
             if order == 'album':
                 return title, artist
             if order == 'newest':
-                return -created(album), artist, title
+                return -date_value(album.get('created')), artist, title
             if order == 'recent_purchased':
-                return -created(album, 'purchasedAt'), artist, title
+                return -date_value(album.get('purchasedAt')), artist, title
             if order in ('most_played', 'recent_played'):
                 value = history.get(str(album['id']), {}).get('plays' if order == 'most_played' else 'lastPlayed', 0)
                 return -value, artist, title

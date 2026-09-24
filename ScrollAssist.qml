@@ -45,10 +45,6 @@ Item {
     }
     onEnabledChanged: if (!enabled) { stop(); resetWheel() }
     onVisibleChanged: if (!visible) { stop(); resetWheel() }
-    Connections {
-        target: root.Window.window
-        function onActiveChanged() { if (!root.Window.window.active) root.stop() }
-    }
     Shortcut { sequence: 'Escape'; enabled: root.scrolling; onActivated: root.stop() }
     WheelHandler {
         acceptedDevices: PointerDevice.Mouse
@@ -82,6 +78,7 @@ Item {
     Timer {
         interval: 16; repeat: true; running: root.scrolling && root.enabled && root.visible
         onTriggered: {
+            if (!root.Window.window || !root.Window.window.active) { root.stop(); return }
             const distance = root.pointerY - root.anchorY
             const speed = Math.sign(distance) * Math.min(24, Math.max(0, Math.abs(distance) - 12) * 0.12)
             root.scrollBy(speed)

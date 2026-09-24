@@ -17,6 +17,8 @@ ScrollView {
     palette.buttonText: foreground
     palette.highlight: accent
     readonly property var config: service.state.config || ({})
+    readonly property var metadataJob: service.state.metadataJob || ({})
+    readonly property var cacheStats: service.state.cacheStats || ({})
     function configure(key, value) { const values = {}; values[key] = value; service.send('configure', {values: values}) }
     ColumnLayout {
         width: root.availableWidth; spacing: 16
@@ -115,10 +117,12 @@ ScrollView {
         Text {
             Layout.fillWidth: true; wrapMode: Text.Wrap; color: root.foreground
             visible: root.config.metadata_enrichment === true
-            readonly property var job: root.service.state.metadataJob || ({})
-            text: job.status === 'running' ? 'Scanning ' + (job.processed || 0) + ' / ' + (job.total || 0) + ' records · ' + (job.enriched || 0) + ' tagged · ' + (job.cached || 0) + ' cached'
-                : job.status === 'complete' ? 'Last scan: ' + (job.lastCompletedAt ? new Date(job.lastCompletedAt * 1000).toLocaleString() : 'just now') + ' · ' + (job.enriched || 0) + ' tagged · ' + (job.cached || 0) + ' cached · ' + (job.unmatched || 0) + ' unmatched · ' + (job.ambiguous || 0) + ' ambiguous'
-                : 'MusicBrainz is enabled. Generate tags to scan your collection; cached tags load automatically.'
+            text: {
+                const job = root.metadataJob || {}
+                return job.status === 'running' ? 'Scanning ' + (job.processed || 0) + ' / ' + (job.total || 0) + ' records · ' + (job.enriched || 0) + ' tagged · ' + (job.cached || 0) + ' cached'
+                    : job.status === 'complete' ? 'Last scan: ' + (job.lastCompletedAt ? new Date(job.lastCompletedAt * 1000).toLocaleString() : 'just now') + ' · ' + (job.enriched || 0) + ' tagged · ' + (job.cached || 0) + ' cached · ' + (job.unmatched || 0) + ' unmatched · ' + (job.ambiguous || 0) + ' ambiguous'
+                    : 'MusicBrainz is enabled. Generate tags to scan your collection; cached tags load automatically.'
+            }
         }
         Text { text: 'Local cache'; color: root.foreground; font.pixelSize: 19; font.bold: true }
         RowLayout {
@@ -132,7 +136,13 @@ ScrollView {
             SpinBox { from: 1; to: 1440; value: root.config.cache_ttl_minutes || 15; onValueModified: root.configure('cache_ttl_minutes', value) }
             Text { text: 'minutes'; color: root.foreground }
         }
-        Text { readonly property var stats: root.service.state.cacheStats || ({}); text: 'Total ' + Math.round((stats.total_bytes || 0) / 1048576) + ' MiB · Artwork ' + Math.round((stats.artwork_bytes || 0) / 1048576) + ' MiB · Profile ' + Math.round((stats.profile_bytes || 0) / 1024) + ' KiB · Tags ' + Math.round((stats.metadata_bytes || 0) / 1024) + ' KiB · Collection ' + Math.round((stats.collection_bytes || 0) / 1024) + ' KiB'; color: root.foreground }
+        Text {
+            color: root.foreground
+            text: {
+                const stats = root.cacheStats || {}
+                return 'Total ' + Math.round((stats.total_bytes || 0) / 1048576) + ' MiB · Artwork ' + Math.round((stats.artwork_bytes || 0) / 1048576) + ' MiB · Profile ' + Math.round((stats.profile_bytes || 0) / 1024) + ' KiB · Tags ' + Math.round((stats.metadata_bytes || 0) / 1024) + ' KiB · Collection ' + Math.round((stats.collection_bytes || 0) / 1024) + ' KiB'
+            }
+        }
         Flow {
             Layout.fillWidth: true; spacing: 8
             Repeater {

@@ -36,6 +36,17 @@ class LibraryTests(unittest.IsolatedAsyncioTestCase):
         await self.app.handle({'cmd': 'collection_order', 'order': 'newest'})
         self.assertEqual([a['id'] for a in self.app.state['albums']], ['b', 'a', 'c'])
 
+    async def test_home_shelves_are_computed_once_per_collection_or_history_patch(self):
+        albums = [{'id': 'a', 'created': '01 Nov 2020 00:00:00 GMT'},
+                  {'id': 'b', 'created': '13 Jan 2024 00:00:00 GMT'},
+                  {'id': 'c'}]
+        self.app.emit(albums=albums)
+        self.assertEqual([a['id'] for a in self.app.state['homeRecent']], ['b', 'a', 'c'])
+        self.app.emit(history={'a': {'plays': 2, 'lastPlayed': 200}, 'b': {'plays': 1, 'lastPlayed': 100}})
+        self.assertEqual([a['id'] for a in self.app.state['homeRediscover']], ['c', 'b', 'a'])
+        self.app.emit(albums=[{**a, 'art': 'file:///cover.jpg'} for a in albums])
+        self.assertEqual(self.app.state['homeRecent'][0]['art'], 'file:///cover.jpg')
+
     async def test_playlist_reorder_keeps_duplicate_tracks_and_queue(self):
         class API:
             playlist = lambda self, id: {'id': id, 'entry': [{'id': 'a'}, {'id': 'b'}, {'id': 'a'}]}

@@ -11,9 +11,8 @@ ScrollView {
     signal browseRequested(string query)
     signal albumRequested(var album)
     signal playlistsRequested()
-    readonly property var albums: service.state.albums || []
-    readonly property var recent: albums.slice().sort((a,b) => (Date.parse(b.created) || 0) - (Date.parse(a.created) || 0)).slice(0,8)
-    readonly property var rediscover: albums.slice().sort((a,b) => ((service.state.history || {})[a.id] || {}).lastPlayed - ((service.state.history || {})[b.id] || {}).lastPlayed || String(a.id).localeCompare(String(b.id))).slice(0,4)
+    readonly property var recent: service.state.homeRecent || []
+    readonly property var rediscover: service.state.homeRediscover || []
     component Action: ActionButton { foreground: root.foreground; surface: root.surface; accent: root.accent }
     component Heading: Text { color: root.foreground; font.pixelSize: 22; font.bold: true }
     component Shelf: Flow {
@@ -21,17 +20,17 @@ ScrollView {
         Layout.fillWidth: true; spacing: 14
         Repeater {
             model: parent.records
-            Button {
+            Item {
                 required property var modelData
                 width: Math.max(130, (root.availableWidth - 42) / 4); height: width + 52
-                background: Item {}
-                contentItem: Column {
+                Column {
+                    anchors.fill: parent
                     spacing: 6
                     Artwork { width: parent.width; height: width; source: modelData.art || ''; foreground: root.foreground }
                     Text { width: parent.width; text: modelData.name || modelData.title || ''; textFormat: Text.PlainText; color: root.foreground; elide: Text.ElideRight; font.bold: true }
                     Text { width: parent.width; text: modelData.artist || ''; textFormat: Text.PlainText; color: root.muted; elide: Text.ElideRight }
                 }
-                onClicked: root.albumRequested(modelData)
+                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.albumRequested(modelData) }
             }
         }
     }
