@@ -9,6 +9,7 @@ Ui.BarWidget {
     moduleName: 'killgallic.bandcamp'
     readonly property var player: bar && bar.shell ? bar.shell.serviceFor(moduleName) : null
     readonly property var config: player ? player.state.config || ({}) : ({})
+    readonly property bool hasTrack: !!(player && player.state.current && (player.state.current.id || player.state.current.title || player.state.current.name))
     property bool popupOpen: false
     readonly property bool opened: popupOpen
     function open() { if (config.mini_player_enabled === false) { openLibrary(); return }; if (player) player.start(); popupOpen = true }
@@ -34,8 +35,12 @@ Ui.BarWidget {
         function onMiniRequested() { root.open() }
         function onStateChanged() { if (root.config.mini_player_enabled === false) root.close() }
     }
-    implicitWidth: vertical ? barSize : (config.bar_display === 'icon' ? 42 : (config.bar_width || 240))
+    implicitWidth: vertical ? barSize : (config.bar_display === 'icon' ? 42 :
+        (!hasTrack && config.bar_compact_when_idle !== false
+            ? Math.min(config.bar_width || 240, Math.ceil(idleText.implicitWidth) + (config.bar_display === 'title' ? 24 : 49))
+            : (config.bar_width || 240)))
     implicitHeight: barSize
+    Text { id: idleText; visible: false; text: 'Bandcamp'; font.family: Style.font.family; font.pixelSize: Style.font.body }
     Row {
         id: content
         anchors.centerIn: parent

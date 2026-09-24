@@ -68,6 +68,7 @@ ScrollView {
             Text { text: 'px/s'; color: root.foreground }
             SpinBox { from: 10; to: 100; value: root.config.bar_scroll_speed || 30; onValueModified: root.configure('bar_scroll_speed', value) }
         }
+        CheckBox { text: 'Compact bar when nothing is playing'; checked: root.config.bar_compact_when_idle !== false; onClicked: root.configure('bar_compact_when_idle', checked) }
         CheckBox { text: 'Reduce motion'; checked: root.config.reduced_motion === true; onClicked: root.configure('reduced_motion', checked) }
         Repeater {
             model: [{label: 'Left click', key: 'bar_left_action', fallback: 'library'}, {label: 'Right click', key: 'bar_right_action', fallback: 'mini'}]

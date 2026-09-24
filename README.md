@@ -56,6 +56,7 @@ Settings writes `~/.config/omarchy-bandcamp/config.json` (or `$XDG_CONFIG_HOME/o
 | `remember_login` | `true` | Restore generated credentials from Secret Service |
 | `profile_url` | empty | Public `https://bandcamp.com/yourname` URL for cached avatar |
 | `bar_display` | `icon_title` | `icon`, `title`, or `icon_title` |
+| `bar_compact_when_idle` | `true` | Shrink the bar entry to its label when no track is selected |
 | `bar_left_action` / `bar_right_action` | `library` / `mini` | Independent click actions (`library`, `mini`, `play_pause`, `none`) |
 | `mini_player_enabled` | `true` | Enable mini player (disabled falls back to library) |
 | `mini_player_width` | `460` | Width from 440–900 pixels |
