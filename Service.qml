@@ -15,6 +15,7 @@ Item {
         shuffle: false, repeat: 'none', current: null})
     property string processError: ''
     property bool quitting: false
+    property bool active: false
     property bool libraryVisible: false
     readonly property alias notifications: notificationCenter
     NotificationCenter {
@@ -43,7 +44,7 @@ Item {
     signal raiseRequested()
     signal stopped()
     function start() {
-        if (!backend.running) { notificationCenter.clear(); quitting = false; processError = ''; state = Object.assign({}, state, {setupRequired:false, starting:true}); backend.running = true }
+        if (!backend.running) { notificationCenter.clear(); quitting = false; processError = ''; state = Object.assign({}, state, {setupRequired:false, starting:true}); active = true; backend.running = true }
     }
     function send(cmd, args) {
         if (!backend.running) {
@@ -61,9 +62,9 @@ Item {
     Process {
         id: backend
         command: [root.directory + '/bin/backend']
-        running: true
+        running: false
         stdinEnabled: true
-        onStarted: root.processError = ''
+        onStarted: { root.active = true; root.processError = '' }
         stdout: SplitParser {
             onRead: data => {
                 try {
@@ -75,6 +76,7 @@ Item {
         // Backend diagnostics never contain credentials; keep them out of the UI.
         stderr: SplitParser { onRead: data => {} }
         onExited: (code, status) => {
+            root.active = false
             if (!root.quitting) {
                 notificationCenter.clear()
                 root.processError = code === 1 && !root.state.connected ? 'Setup needed: run bin/setup in the Omarchy Bandcamp directory, then reopen the player.' : 'The player stopped. Reopen Bandcamp to reconnect.'

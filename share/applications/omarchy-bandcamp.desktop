@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Bandcamp
+Comment=Listen to your Bandcamp collection
+Exec=omarchy-bandcamp
+Icon=omarchy-bandcamp
+Terminal=false
+Categories=AudioVideo;Audio;Music;Player;
+Keywords=Bandcamp;music;collection;albums;
+StartupNotify=false

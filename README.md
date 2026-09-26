@@ -10,11 +10,10 @@ Requires Omarchy 4 / Quickshell, mpv, uv, and optionally Secret Service (`secret
 
 ```bash
 cd ~/code/omarchy-bandcamp
-uv sync --frozen
-./bin/omarchy-bandcamp
+./bin/setup
 ```
 
-The launcher opens the Omarchy plugin when installed; otherwise it starts the standalone player. `--standalone` explicitly selects the standalone shell. Re-running it brings the existing standalone player forward. In standalone mode, closing the library shows the mini-player; Quit exits both. Playback continues while switching between library and mini-player.
+Search **Bandcamp** from the Omarchy app launcher (Super+Space), or run `omarchy-bandcamp`. The setup script installs the launcher entry, icon, and command for your user. The command opens the Omarchy plugin when installed; otherwise it starts the standalone player. `--standalone` explicitly selects the standalone shell. Re-running it brings the existing standalone player forward. In standalone mode, closing the library shows the mini-player; Quit exits both. Playback continues while switching between library and mini-player.
 
 ## Connect your collection
 
@@ -27,9 +26,9 @@ The fixed server is `https://bandcamp.com/api/subsonic`. Login checks collection
 
 ## Omarchy plugin
 
-The project contains service, bar-widget, and panel entry points under plugin ID `killgallic.bandcamp`. It is linked into `~/.config/omarchy/plugins/its.bandcamp` and enabled in the right bar section on this machine. The `omarchy-bandcamp` command is installed in `~/.local/bin`. Keep this project and its `.venv` available through those links. Do not run the standalone player and plugin simultaneously: one process owns Bandcamp's media controls.
+The project contains service, bar-widget, and panel entry points under plugin ID `killgallic.bandcamp`. It is linked into `~/.config/omarchy/plugins/killgallic.bandcamp` and enabled in the right bar section on this machine. The `omarchy-bandcamp` command and desktop entry are installed for the current user by `bin/setup`. Bandcamp starts from the app launcher; its bar entry appears while it runs and disappears after Quit. Keep this project and its `.venv` available through those links. Do not run the standalone player and plugin simultaneously: one process owns Bandcamp's media controls.
 
-To hide the library, close it or press Mini; playback remains in the bar. To disable the plugin, run `omarchy plugin disable killgallic.bandcamp`.
+To hide the library, close its window; playback remains in the bar. Quit stops the app and removes its bar entry. To disable the plugin, run `omarchy plugin disable killgallic.bandcamp`.
 
 The bar widget opens the full player on left-click, the mini-player on right-click, pauses on middle-click, and changes tracks with the scroll wheel. The built-in Omarchy media widget can also control the standalone player through MPRIS.
 
@@ -76,6 +75,8 @@ Left-click the bar entry to open or close the full player by default; right-clic
 
 Search album/artist text and open Artist, Genre, or Tags filter buttons for searchable, scrollable multi-select lists with contextual record counts. Each menu can order choices by most records, least records, A–Z, or Z–A. Values within one category use OR; different categories combine with AND. Remove selections using their chips or Clear all. Sort has its own dropdown. Native Bandcamp genres and optional MusicBrainz tags remain distinct. MusicBrainz coverage and scan results appear under Settings → Collection tags. Recently added uses Bandcamp's collection-added timestamps, not a guaranteed purchase date. Most played here/recently played track qualified listens in this app only (half a track or four minutes, whichever comes first). Local per-account history lives under `$XDG_STATE_HOME/omarchy-bandcamp`.
 
+Use the album menu or album page to add a record to Favourites or hide it. The Favourites shelf on Home shows up to eight records and **View all** opens the full favourites collection. Hidden albums stay out of normal collection browsing and Home shelves; **Hidden** in Collection lets you view and unhide them. These choices are local to this app, stored per account under `$XDG_STATE_HOME/omarchy-bandcamp`, and do not alter your Bandcamp collection.
+
 Mouse wheel starts at 360 pixels per notch, configurable from 120–1200 in Settings. Discrete notches ease into their destination and consecutive turns accumulate; Reduce motion makes them immediate. Quick consecutive turns accelerate exponentially up to 5×; a pause or direction change resets the speed. Disable acceleration in Settings if preferred. Middle-click starts autoscroll; move away from its marker to adjust speed. Click, wheel, Escape, page change, or window deactivation stops it. Smooth trackpad gestures retain native scrolling.
 
 Add individual tracks or whole albums to the queue and remove queue entries. Playlists can be saved from the queue, appended to, renamed, reordered, and deleted (with confirmation). Playlist edits sync through Bandcamp's API and do not change the current queue.
@@ -100,7 +101,7 @@ Research: [Bandcamp announcement](https://blog.bandcamp.com/2026/07/16/discover-
 
 ## Public plugin setup
 
-After `omarchy plugin add https://github.com/killgallic/omarchy-bandcamp`, run `bin/setup` from the cloned plugin directory. It checks for `uv` and `mpv` and installs the locked Python dependencies into a local `.venv`. The player presents this setup step if opened before dependencies are installed. No sudo or installation happens automatically when the bar loads.
+After `omarchy plugin add https://github.com/killgallic/omarchy-bandcamp`, run `bin/setup` from the cloned plugin directory. It checks for `uv` and `mpv`, installs the locked Python dependencies into a local `.venv`, and installs a user desktop launcher and icon. The player presents this setup step if opened before dependencies are installed. No sudo or installation happens automatically when the bar loads.
 
 The large player now opens on Home. The profile image and Bandcamp wordmark return there from anywhere; Browse all records leads to the filterable grid. Right-click album art or a song (or use its `⋯` button / Menu key) to add it to the queue or a playlist. New playlists can be empty. Bandcamp searches are clearly labelled when a canonical artist or release URL is not available from the Subsonic API.
 

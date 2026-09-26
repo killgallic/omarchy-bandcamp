@@ -10,6 +10,10 @@ Item {
     property bool opened: false
     function open(payload) { if (service) service.start(); opened = true }
     function close() { opened = false }
+    function quit(disableConfirmation) {
+        if (service) service.quit(disableConfirmation === true)
+        requestClose()
+    }
     onOpenedChanged: if (service) service.libraryVisible = opened
     function requestClose() {
         if (shell && typeof shell.hide === 'function') shell.hide('killgallic.bandcamp')
@@ -51,7 +55,7 @@ Item {
             service: root.service
             foreground: Color.foreground; background: Color.background; accent: Color.accent; muted: Color.muted
             fontFamily: Style.font.family
-            onQuitConfirmed: disableConfirmation => { if (root.service) root.service.quit(disableConfirmation); root.requestClose() }
+            onQuitConfirmed: disableConfirmation => root.quit(disableConfirmation)
         }
     }
 }

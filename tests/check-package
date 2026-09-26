@@ -8,7 +8,7 @@ manifest = json.loads((root/'manifest.json').read_text())
 project = (root/'pyproject.toml').read_text()
 assert manifest['version'] in project
 assert manifest['id'] and '.' in manifest['id']
-for path in [*manifest['entryPoints'].values(), 'bin/backend','bin/setup','bin/omarchy-bandcamp','README.md','LICENSE','uv.lock']:
+for path in [*manifest['entryPoints'].values(), 'bin/backend','bin/setup','bin/omarchy-bandcamp','share/applications/omarchy-bandcamp.desktop','assets/bandcamp.svg','README.md','LICENSE','uv.lock']:
     assert (root/path).is_file(), path
 for path in ['bin/backend','bin/setup','bin/omarchy-bandcamp']:
     assert os.access(root/path, os.X_OK), path

@@ -24,6 +24,9 @@ Menu {
     MenuItem { text: 'Play now'; onTriggered: root.service.send(root.queueIndex >= 0 ? 'play_index' : 'play_album', root.queueIndex >= 0 ? {index:root.queueIndex} : {id:root.source.kind === 'album' ? root.source.id : root.source.albumId,index:root.trackIndex,trackId:root.source.kind === 'track' ? root.source.id : ''}) }
     MenuItem { text: root.source.kind === 'album' ? 'Add album to queue' : 'Add track to queue'; onTriggered: root.service.send(root.source.kind === 'album' ? 'enqueue_album' : 'enqueue_track', {id:root.source.kind === 'album' ? root.source.id : root.source.albumId,index:root.trackIndex,trackId:root.source.id}) }
     MenuItem { text: 'Add to playlist…'; onTriggered: root.playlistRequested(Object.assign({}, root.source)) }
+    MenuSeparator { visible: root.source.kind === 'album' }
+    MenuItem { objectName: 'favouriteAction'; visible: root.source.kind === 'album'; height: visible ? implicitHeight : 0; text: ((root.service.state.favouriteIds || []).indexOf(String(root.source.id)) >= 0) ? 'Remove from favourites' : 'Add to favourites'; onTriggered: root.service.send('toggle_favourite', {id:root.source.id}) }
+    MenuItem { objectName: 'hideAction'; visible: root.source.kind === 'album'; height: visible ? implicitHeight : 0; text: ((root.service.state.hiddenIds || []).indexOf(String(root.source.id)) >= 0) ? 'Unhide album' : 'Hide album'; onTriggered: root.service.send('toggle_hidden', {id:root.source.id}) }
     MenuSeparator {}
     MenuItem { text: root.source.kind === 'album' ? 'Album information' : 'Track information'; onTriggered: root.detailsRequested(root.item, root.source) }
     MenuItem { text: root.item.artistUrl ? 'Artist on Bandcamp ↗' : 'Search artist on Bandcamp ↗'; onTriggered: Qt.openUrlExternally(root.item.artistUrl || 'https://bandcamp.com/search?q=' + encodeURIComponent(root.item.artist || '')) }

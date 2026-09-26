@@ -13,4 +13,9 @@ if ! command -v secret-tool >/dev/null; then
   printf '%s\n' 'Note: secret-tool is unavailable; remembered login needs the libsecret package.' >&2
 fi
 (cd "$project_dir" && uv sync --frozen)
-printf 'Ready. Open Bandcamp from the Omarchy bar or run %s/bin/omarchy-bandcamp\n' "$project_dir"
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
+mkdir -p "$HOME/.local/bin" "$data_dir/applications" "$data_dir/icons/hicolor/scalable/apps"
+ln -sfn "$project_dir/bin/omarchy-bandcamp" "$HOME/.local/bin/omarchy-bandcamp"
+install -m 644 "$project_dir/share/applications/omarchy-bandcamp.desktop" "$data_dir/applications/omarchy-bandcamp.desktop"
+ln -sfn "$project_dir/assets/bandcamp.svg" "$data_dir/icons/hicolor/scalable/apps/omarchy-bandcamp.svg"
+printf 'Ready. Search Bandcamp from the Omarchy app launcher (Super+Space), or run %s/bin/omarchy-bandcamp\n' "$project_dir"

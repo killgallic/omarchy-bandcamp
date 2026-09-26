@@ -12,6 +12,7 @@ Ui.BarWidget {
     readonly property bool hasTrack: !!(player && player.state.current && (player.state.current.id || player.state.current.title || player.state.current.name))
     property bool popupOpen: false
     readonly property bool opened: popupOpen
+    visible: !!player && player.active
     function open() { if (config.mini_player_enabled === false) { openLibrary(); return }; if (player) player.start(); popupOpen = true }
     function runAction(action) {
         if (action === 'mini' && config.mini_player_enabled === false) action = 'library'
@@ -32,8 +33,9 @@ Ui.BarWidget {
     Connections {
         target: root.player
         function onStateChanged() { if (root.config.mini_player_enabled === false) root.close() }
+        function onActiveChanged() { if (!root.player.active) root.close() }
     }
-    implicitWidth: vertical ? barSize : (config.bar_display === 'icon' ? 42 :
+    implicitWidth: !visible ? 0 : vertical ? barSize : (config.bar_display === 'icon' ? 42 :
         (!hasTrack && config.bar_compact_when_idle !== false
             ? Math.min(config.bar_width || 240, Math.ceil(idleText.implicitWidth) + (config.bar_display === 'title' ? 24 : 49))
             : (config.bar_width || 240)))

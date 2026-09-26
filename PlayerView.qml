@@ -14,6 +14,7 @@ Rectangle {
     function goHome() { page = 'home'; if (state.connected) service.send('playlists') }
     function openAlbum(record) { service.state = Object.assign({}, state, {album:null}); page = 'album'; service.send('album', {id:record.id}) }
     property string filter: ''
+    property string collectionScope: 'all'
     property var selectedArtists: []
     property var selectedGenres: []
     property var selectedTags: []
@@ -22,15 +23,26 @@ Rectangle {
     readonly property var libraryAlbums: state.albums || []
     readonly property var album: state.album || ({})
     readonly property var records: libraryAlbums.filter(a => matches(a, ''))
+    readonly property int favouriteCount: libraryAlbums.filter(a => isFavourite(a.id) && !isHidden(a.id)).length
+    readonly property int hiddenCount: libraryAlbums.filter(a => isHidden(a.id)).length
     readonly property var artistOptions: facetOptions('Artist')
     readonly property var genreOptions: facetOptions('Genre')
     readonly property var tagOptions: facetOptions('Tags')
     readonly property var activeFilters: selectedArtists.map(v => ({kind: 'Artist', value: v})).concat(selectedGenres.map(v => ({kind: 'Genre', value: v})), selectedTags.map(v => ({kind: 'Tags', value: v})))
     readonly property var sortOptions: [{value:'artist',label:'Artist A–Z'}, {value:'album',label:'Album A–Z'}, {value:'newest',label:'Recently added'}, {value:'recent_purchased',label:'Recently purchased (public)'}, {value:'most_played',label:'Most played here'}, {value:'recent_played',label:'Recently played here'}]
+    function setCollectionScope(scope) {
+        collectionScope = scope
+        search.clear()
+        selectedArtists = []; selectedGenres = []; selectedTags = []
+        page = 'collection'
+    }
+    function isFavourite(id) { return (state.favouriteIds || []).indexOf(String(id)) >= 0 }
+    function isHidden(id) { return (state.hiddenIds || []).indexOf(String(id)) >= 0 }
     function valuesFor(a, kind) { return kind === 'Artist' ? [a.artist || ''] : kind === 'Genre' ? [a.genre || ''] : (a.tags || []) }
     function matches(a, skip) {
         const text = ((a.name || a.title || '') + ' ' + (a.artist || '')).toLowerCase()
-        return text.indexOf(filter.toLowerCase()) >= 0
+        const inScope = collectionScope === 'hidden' ? isHidden(a.id) : !isHidden(a.id) && (collectionScope !== 'favourites' || isFavourite(a.id))
+        return inScope && text.indexOf(filter.toLowerCase()) >= 0
             && (skip === 'Artist' || !selectedArtists.length || selectedArtists.indexOf(a.artist) >= 0)
             && (skip === 'Genre' || !selectedGenres.length || selectedGenres.indexOf(a.genre) >= 0)
             && (skip === 'Tags' || !selectedTags.length || (a.tags || []).some(t => selectedTags.indexOf(t) >= 0))
@@ -104,7 +116,7 @@ Rectangle {
             Layout.topMargin: 12; Layout.bottomMargin: 12
             spacing: 8
             Action { objectName: 'homeNav'; text: '⌂'; font.pixelSize: 22; Layout.preferredWidth: 38; Accessible.name: 'Home'; ToolTip.text: 'Home'; ToolTip.visible: hovered; emphasized: root.page === 'home'; onClicked: root.goHome() }
-            Action { objectName: 'collectionNav'; text: 'Collection'; emphasized: root.page === 'collection' || root.page === 'album'; onClicked: root.page = 'collection' }
+            Action { objectName: 'collectionNav'; text: 'Collection'; emphasized: root.page === 'collection' || root.page === 'album'; onClicked: root.setCollectionScope('all') }
             Action { objectName: 'playlistsNav'; text: 'Playlists'; emphasized: root.page === 'playlists'; onClicked: { root.page = 'playlists'; root.service.send('playlists') } }
             Action { objectName: 'queueNav'; text: 'Queue' + ((root.state.queue || []).length ? ' · ' + root.state.queue.length : ''); emphasized: root.page === 'queue'; onClicked: root.page = 'queue' }
             Item { Layout.fillWidth: true }
@@ -187,11 +199,17 @@ Rectangle {
                 Layout.fillWidth: true
                 ColumnLayout {
                     spacing: 4
-                    Copy { text: 'The collection'; font.pixelSize: 27; font.bold: true }
-                    Copy { text: root.records.length + ' of ' + root.libraryAlbums.length + ' records'; color: root.muted; font.pixelSize: 12 }
+                    Copy { text: root.collectionScope === 'hidden' ? 'Hidden albums' : root.collectionScope === 'favourites' ? 'Favourites' : 'The collection'; font.pixelSize: 27; font.bold: true }
+                    Copy { text: root.records.length + ' records'; color: root.muted; font.pixelSize: 12 }
                 }
                 Item { Layout.fillWidth: true }
                 Field { id: search; Layout.preferredWidth: Math.min(300, root.width * 0.35); placeholderText: 'Filter artist or album'; Accessible.name: 'Filter collection'; onTextChanged: root.filter = text }
+            }
+            RowLayout {
+                visible: root.page === 'collection'; spacing: 8
+                Action { objectName: 'allScope'; text: 'All'; emphasized: root.collectionScope === 'all'; onClicked: root.setCollectionScope('all') }
+                Action { objectName: 'favouritesScope'; text: 'Favourites' + (root.favouriteCount ? ' · ' + root.favouriteCount : ''); emphasized: root.collectionScope === 'favourites'; onClicked: root.setCollectionScope('favourites') }
+                Action { objectName: 'hiddenScope'; text: 'Hidden' + (root.hiddenCount ? ' · ' + root.hiddenCount : ''); emphasized: root.collectionScope === 'hidden'; onClicked: root.setCollectionScope('hidden') }
             }
             RowLayout {
                 visible: root.page === 'collection'; Layout.fillWidth: true; spacing: 8
@@ -272,6 +290,7 @@ Rectangle {
                                     TapHandler { acceptedButtons: Qt.RightButton; onTapped: itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}) }
                                     Keys.onPressed: event => { if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) { itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}); event.accepted = true } }
                                     Action { anchors.right: parent.right; anchors.bottom: parent.bottom; text: '⋯'; Accessible.name: 'Album actions'; onClicked: itemMenu.showFor(parent, modelData, {kind:'album',id:modelData.id}) }
+                                    Text { anchors.left: parent.left; anchors.top: parent.top; anchors.margins: 8; visible: root.isFavourite(modelData.id); text: '★'; color: root.accent; font.pixelSize: 20 }
                                     Rectangle { anchors.fill: parent; color: 'transparent'; border.width: parent.hovered || parent.activeFocus ? 2 : 0; border.color: root.accent }
                                 }
                                 Copy { width: parent.width; text: modelData.name || modelData.title || 'Untitled'; font.bold: true; elide: Text.ElideRight }
@@ -279,7 +298,7 @@ Rectangle {
                             }
                         }
                     }
-                    Copy { anchors.centerIn: parent; visible: root.records.length === 0; text: root.state.busy ? 'Loading your records…' : root.filter || root.activeFilters.length ? 'No records match. Remove a filter or clear all.' : 'No albums found. Refresh to try again.'; color: root.muted }
+                    Copy { anchors.centerIn: parent; visible: root.records.length === 0; text: root.state.busy ? 'Loading your records…' : root.filter || root.activeFilters.length ? 'No records match. Remove a filter or clear all.' : root.collectionScope === 'hidden' ? 'No hidden albums.' : root.collectionScope === 'favourites' ? 'No favourites yet. Add one from an album menu.' : 'No albums found. Refresh to try again.'; color: root.muted }
                 }
                 ColumnLayout {
                     spacing: 18
@@ -290,9 +309,12 @@ Rectangle {
                             Layout.fillWidth: true; spacing: 8
                             Copy { Layout.fillWidth: true; text: root.album.name || root.album.title || 'Loading album…'; font.pixelSize: 24; font.bold: true; elide: Text.ElideRight }
                             Copy { Layout.fillWidth: true; text: root.album.artist || ''; color: root.muted; elide: Text.ElideRight }
-                            RowLayout {
+                            Flow {
+                                Layout.fillWidth: true; Layout.preferredHeight: childrenRect.height; spacing: 8
                                 Action { text: 'Play record'; emphasized: true; enabled: !!root.album.id && !root.state.busy; onClicked: root.service.send('play_album', {id: root.album.id, index: 0}) }
                                 Action { text: '+ Queue'; enabled: !!root.album.id && !root.state.busy; onClicked: root.service.send('enqueue_album', {id: root.album.id}) }
+                                Action { text: root.isFavourite(root.album.id) ? '★ Favourited' : '☆ Favourite'; enabled: !!root.album.id; onClicked: root.service.send('toggle_favourite', {id:root.album.id}) }
+                                Action { text: root.isHidden(root.album.id) ? 'Unhide' : 'Hide'; enabled: !!root.album.id; onClicked: root.service.send('toggle_hidden', {id:root.album.id}) }
                                 Action { text: root.album.artistUrl ? 'Artist on Bandcamp ↗' : 'Search artist ↗'; onClicked: Qt.openUrlExternally(root.album.artistUrl || 'https://bandcamp.com/search?q=' + encodeURIComponent(root.album.artist || '')) }
                                 Action { text: root.album.releaseUrl ? 'View / support release ↗' : 'Search release ↗'; onClicked: Qt.openUrlExternally(root.album.releaseUrl || 'https://bandcamp.com/search?q=' + encodeURIComponent((root.album.artist || '') + ' ' + (root.album.name || ''))) }
                             }
@@ -342,8 +364,10 @@ Rectangle {
                 SettingsView { service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent }
                 HomeView {
                     service: root.service; foreground: root.foreground; surface: root.background; accent: root.accent; muted: root.muted
-                    onBrowseRequested: query => { search.text = query; root.page = 'collection' }
+                    onBrowseRequested: query => { root.setCollectionScope('all'); search.text = query }
+                    onFavouritesRequested: root.setCollectionScope('favourites')
                     onAlbumRequested: record => root.openAlbum(record)
+                    onAlbumContextRequested: (target, record) => itemMenu.showFor(target, record, {kind:'album',id:record.id})
                     onPlaylistsRequested: { root.page = 'playlists'; root.service.send('playlists') }
                 }
             }

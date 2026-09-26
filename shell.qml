@@ -6,11 +6,14 @@ ShellRoot {
     id: root
     property bool expanded: true
     property bool exiting: false
-    function quitPlayer() { exiting = true; player.quit(); shutdown.start() }
+    function quitPlayer() { player.requestQuit() }
     Theme { id: theme }
     Service {
         id: player
+        Component.onCompleted: start()
         onRaiseRequested: root.expanded = true
+        onQuitConfirmationRequested: { root.expanded = true; Qt.callLater(() => playerView.confirmQuit()) }
+        onQuittingChanged: if (quitting) { root.exiting = true; shutdown.start() }
         onStateChanged: if (state.config.mini_player_enabled === false) root.expanded = true
         onStopped: if (root.exiting) Qt.quit()
     }
@@ -30,12 +33,12 @@ ShellRoot {
         color: theme.background
         onVisibleChanged: if (!visible && root.expanded && !root.exiting) root.expanded = false
         PlayerView {
+            id: playerView
             anchors.fill: parent
             service: player
             foreground: theme.foreground; background: theme.background; accent: theme.accent; muted: theme.muted
             fontFamily: theme.fontFamily
-            onMinimizeRequested: if (player.state.config.mini_player_enabled !== false) root.expanded = false
-            onQuitRequested: root.quitPlayer()
+            onQuitConfirmed: disableConfirmation => player.quit(disableConfirmation)
         }
     }
     FloatingWindow {

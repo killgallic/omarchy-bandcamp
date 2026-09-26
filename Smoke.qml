@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell
 
 ShellRoot {
-    Service { id: player }
+    Service { id: player; Component.onCompleted: start() }
     Theme { id: theme }
     FloatingWindow {
         id: window

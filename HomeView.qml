@@ -11,8 +11,11 @@ ScrollView {
     signal browseRequested(string query)
     signal albumRequested(var album)
     signal playlistsRequested()
+    signal favouritesRequested()
+    signal albumContextRequested(var target, var album)
     readonly property var recent: service.state.homeRecent || []
     readonly property var rediscover: service.state.homeRediscover || []
+    readonly property var favourites: service.state.homeFavourites || []
     Component {
         id: scrollAssistComponent
         ScrollAssist {
@@ -40,7 +43,7 @@ ScrollView {
                     Text { width: parent.width; text: modelData.name || modelData.title || ''; textFormat: Text.PlainText; color: root.foreground; elide: Text.ElideRight; font.bold: true }
                     Text { width: parent.width; text: modelData.artist || ''; textFormat: Text.PlainText; color: root.muted; elide: Text.ElideRight }
                 }
-                MouseArea { anchors.fill: parent; cursorShape: Qt.PointingHandCursor; onClicked: root.albumRequested(modelData) }
+                MouseArea { id: shelfMouse; anchors.fill: parent; cursorShape: Qt.PointingHandCursor; acceptedButtons: Qt.LeftButton | Qt.RightButton; onClicked: event => { if (event.button === Qt.RightButton) root.albumContextRequested(shelfMouse, modelData); else root.albumRequested(modelData) } }
             }
         }
     }
@@ -64,6 +67,13 @@ ScrollView {
             Item { Layout.fillWidth: true }
             Action { text: root.service.state.playing ? 'Pause' : 'Resume'; onClicked: root.service.send('toggle') }
         }
+        RowLayout {
+            Heading { text: 'Favourites' }
+            Item { Layout.fillWidth: true }
+            Action { objectName: 'homeFavouritesButton'; text: 'View all'; onClicked: root.favouritesRequested() }
+        }
+        Text { visible: !root.favourites.length; text: 'Keep your best finds close. Favourite any album from its menu.'; color: root.muted }
+        Shelf { objectName: 'homeFavouritesShelf'; records: root.favourites }
         RowLayout {
             Heading { text: 'Recently added' }
             Item { Layout.fillWidth: true }

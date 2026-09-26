@@ -17,6 +17,7 @@ from . import credentials
 from .mpv import Mpv
 from .queue import Queue
 from .library import LibraryCache
+from . import album_flags
 
 
 def public_item(item):
@@ -50,7 +51,7 @@ class App:
                           playlists=[], playlist=None, playlistBusy=False, playlistError='',
                           collectionOrder='artist', collectionNotice='', history={}, tagSource='Bandcamp genres',
                           profile={}, metadataBusy=False, metadataNotice='', metadataJob={}, cacheStats={}, cachedCollection=None, offline=False,
-                          homeRecent=[], homeRediscover=[])
+                          homeRecent=[], homeRediscover=[], homeFavourites=[], favouriteIds=[], hiddenIds=[])
         self.player = Mpv(self.mpv_event)
         self.network_lock = asyncio.Lock()
         self.stop = asyncio.Event()
@@ -71,11 +72,15 @@ class App:
         self.notification_serial = 0
 
     def emit(self, **patch):
-        if 'albums' in patch or 'history' in patch:
+        if {'albums', 'history', 'favouriteIds', 'hiddenIds'} & patch.keys():
             albums = patch.get('albums', self.state['albums'])
             history = patch.get('history', self.state['history'])
-            patch['homeRecent'] = sorted(albums, key=lambda a: (-date_value(a.get('created')), str(a.get('id', ''))))[:8]
-            patch['homeRediscover'] = sorted(albums, key=lambda a: (history.get(str(a.get('id')), {}).get('lastPlayed', 0), str(a.get('id', ''))))[:4]
+            favourites = set(patch.get('favouriteIds', self.state['favouriteIds']))
+            hidden = set(patch.get('hiddenIds', self.state['hiddenIds']))
+            visible = [a for a in albums if str(a.get('id')) not in hidden]
+            patch['homeRecent'] = sorted(visible, key=lambda a: (-date_value(a.get('created')), str(a.get('id', ''))))[:8]
+            patch['homeRediscover'] = sorted(visible, key=lambda a: (history.get(str(a.get('id')), {}).get('lastPlayed', 0), str(a.get('id', ''))))[:4]
+            patch['homeFavourites'] = [a for a in visible if str(a.get('id')) in favourites][:8]
         self.state.update(patch)
         self.output({'event': 'state', 'state': patch or self.state.copy()})
         if self.mpris:
@@ -183,6 +188,22 @@ class App:
                     raise ValueError()
                 self.emit(collectionOrder=message['order'])
                 self.sort_collection()
+            elif cmd in ('toggle_favourite', 'toggle_hidden'):
+                async with self.network_lock:
+                    if not self.api:
+                        raise ValueError()
+                    album_id = str(message['id'])
+                    if album_id not in {str(a.get('id')) for a in self.state['albums']}:
+                        raise ValueError()
+                    favourites = list(self.state['favouriteIds'])
+                    hidden = list(self.state['hiddenIds'])
+                    target = favourites if cmd == 'toggle_favourite' else hidden
+                    if album_id in target:
+                        target.remove(album_id)
+                    else:
+                        target.append(album_id)
+                    await asyncio.to_thread(album_flags.save, self.api.username, favourites, hidden)
+                    self.emit(favouriteIds=favourites, hiddenIds=hidden)
             elif cmd == 'retry':
                 await self.play_current()
             elif cmd == 'remove_queue':
@@ -294,7 +315,7 @@ class App:
             cleared = await asyncio.to_thread(credentials.clear)
             self.emit(connected=False, offline=False, cachedCollection=None, username='', albums=[], album=None, queue=[], index=-1,
                       current={}, playing=False, position=0, duration=0, busy=False, error='',
-                      profile={}, playlists=[], playlist=None, history={},
+                      profile={}, playlists=[], playlist=None, history={}, favouriteIds=[], hiddenIds=[],
                       notice='' if cleared else 'Could not clear the desktop keyring. Remove the Omarchy Bandcamp entry there if it was saved.')
             return
         self.emit(busy=True, error='', **({'album': None} if cmd == 'album' else {}))
@@ -317,6 +338,7 @@ class App:
                 else:
                     albums = await asyncio.to_thread(api.albums)
                 albums = await asyncio.to_thread(self.cached_artwork, username, albums)
+                flags = await asyncio.to_thread(album_flags.load, username)
                 self.generation += 1
                 self.cancel_loading()
                 self.api = api
@@ -325,7 +347,8 @@ class App:
                 self.player = Mpv(self.mpv_event)
                 self.emit(cachedCollection=None, offline=False, connected=True, username=username, albums=[public_item(a) for a in albums],
                           album=None, queue=[], index=-1, current={}, playing=False, position=0,
-                          duration=0, error='', notice='', playlists=loaded_playlists or [], playlist=None, profile={}, history={}, playlistError='')
+                          duration=0, error='', notice='', playlists=loaded_playlists or [], playlist=None, profile={}, history={}, playlistError='',
+                          favouriteIds=flags['favourites'], hiddenIds=flags['hidden'])
                 if 'profile_url' in message:
                     self.config.update({'profile_url': message['profile_url']})
                     self.emit(config=self.config.values.copy())
@@ -637,6 +660,11 @@ class App:
     def history_path(self):
         name = hashlib.sha256(self.api.username.encode()).hexdigest()
         return Path(os.environ.get('XDG_STATE_HOME', Path.home() / '.local/state')) / 'omarchy-bandcamp' / (name + '.json')
+
+    def load_album_flags(self):
+        if self.api:
+            flags = album_flags.load(self.api.username)
+            self.emit(favouriteIds=flags['favourites'], hiddenIds=flags['hidden'])
 
     def load_history(self):
         try:

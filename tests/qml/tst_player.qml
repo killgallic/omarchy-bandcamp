@@ -91,6 +91,28 @@ TestCase {
         compare(findChild(player, 'collectionScroll').reducedMotion, true)
         service.state = original
     }
+    function test_favourites_and_hidden_collection_views() {
+        const original = service.state
+        service.state = Object.assign({}, original, {favouriteIds:['1'], hiddenIds:['2'], homeFavourites:[original.albums[0]]})
+        player.page = 'collection'
+        compare(player.records.map(a => a.id).join(','), '1')
+        const favourites = findChild(player, 'favouritesScope')
+        const hidden = findChild(player, 'hiddenScope')
+        verify(favourites && hidden)
+        favourites.clicked()
+        compare(player.records.map(a => a.id).join(','), '1')
+        hidden.clicked()
+        compare(player.records.map(a => a.id).join(','), '2')
+        service.state = Object.assign({}, service.state, {hiddenIds:[]})
+        compare(player.records.length, 0)
+        player.page = 'home'
+        compare(findChild(player, 'homeFavouritesShelf').records[0].id, '1')
+        findChild(player, 'homeFavouritesButton').clicked()
+        compare(player.page, 'collection')
+        compare(player.collectionScope, 'favourites')
+        player.collectionScope = 'all'
+        service.state = original
+    }
     function test_genres_sort_by_count_then_name() {
         const original = service.state
         service.state = Object.assign({}, original, {albums: [
