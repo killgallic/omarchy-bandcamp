@@ -31,7 +31,14 @@ with tarfile.open(fileobj=io.BytesIO(archive)) as source, tempfile.TemporaryDire
     assert all(not member.issym() and not member.islnk() for member in members), 'Plugin archive contains symlinks'
     assert all('..' not in Path(member.name).parts for member in members), 'Plugin archive contains unsafe paths'
     source.extractall(temporary)
-    if shutil.which('omarchy'):
+    validator = os.environ.get('OMARCHY_PLUGIN_VALIDATOR')
+    if validator:
+        assert Path(validator).is_file(), f'Missing required Omarchy validator: {validator}'
+        subprocess.run(['bash', validator, temporary], check=True)
+        print('Required Omarchy plugin validation passed on the source archive.')
+    elif shutil.which('omarchy'):
         subprocess.run(['omarchy', 'plugin', 'validate', temporary], check=True)
         print('Omarchy plugin validation passed on the source archive.')
+    else:
+        print('Omarchy CLI unavailable; set OMARCHY_PLUGIN_VALIDATOR to require upstream validation.')
 print('Package manifest, source archive, and clean-source checks passed.')
