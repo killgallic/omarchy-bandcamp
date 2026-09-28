@@ -12,8 +12,8 @@ fi
 if ! command -v secret-tool >/dev/null; then
   printf '%s\n' 'Note: secret-tool is unavailable; remembered login needs the libsecret package.' >&2
 fi
-(cd "$project_dir" && uv sync --frozen)
 data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
+UV_PROJECT_ENVIRONMENT="$data_dir/omarchy-bandcamp/venv" uv sync --directory "$project_dir" --frozen
 mkdir -p "$HOME/.local/bin" "$data_dir/applications" "$data_dir/icons/hicolor/scalable/apps"
 ln -sfn "$project_dir/bin/omarchy-bandcamp" "$HOME/.local/bin/omarchy-bandcamp"
 install -m 644 "$project_dir/share/applications/omarchy-bandcamp.desktop" "$data_dir/applications/omarchy-bandcamp.desktop"

@@ -2,8 +2,12 @@
 set -euo pipefail
 project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$project_dir"
-if [[ ! -x .venv/bin/python ]]; then
-  printf '%s\n' '{"event":"state","state":{"error":"Run uv sync in the Omarchy Bandcamp project first."}}'
+runtime_python="${XDG_DATA_HOME:-$HOME/.local/share}/omarchy-bandcamp/venv/bin/python"
+if [[ -x "$runtime_python" ]]; then
+  exec "$runtime_python" -m bandcamp.backend
+elif [[ -x .venv/bin/python ]]; then
+  exec .venv/bin/python -m bandcamp.backend
+else
+  printf '%s\n' '{"event":"state","state":{"error":"Run bin/setup in the Omarchy Bandcamp project first."}}'
   exit 1
 fi
-exec .venv/bin/python -m bandcamp.backend

@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
-test -x .venv/bin/python || { printf '%s\n' 'Run bin/setup first.' >&2; exit 1; }
+runtime_python=.venv/bin/python
+if [[ ! -x "$runtime_python" ]]; then runtime_python="${XDG_DATA_HOME:-$HOME/.local/share}/omarchy-bandcamp/venv/bin/python"; fi
+test -x "$runtime_python" || { printf '%s\n' 'Run bin/setup or uv sync first.' >&2; exit 1; }
 test_dir="$(mktemp -d)"
 trap 'rm -rf "$test_dir"' EXIT
-XDG_CONFIG_HOME="$test_dir/config" XDG_CACHE_HOME="$test_dir/cache" XDG_STATE_HOME="$test_dir/state" BANDCAMP_INTEGRATION=1 dbus-run-session -- .venv/bin/python -m unittest discover -s tests -v
+XDG_CONFIG_HOME="$test_dir/config" XDG_CACHE_HOME="$test_dir/cache" XDG_STATE_HOME="$test_dir/state" BANDCAMP_INTEGRATION=1 dbus-run-session -- "$runtime_python" -m unittest discover -s tests -v
