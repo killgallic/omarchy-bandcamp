@@ -48,3 +48,37 @@ chmod +x "$target/bin/python"
             self.assertTrue((data / 'icons/hicolor/scalable/apps/omarchy-bandcamp.svg').is_symlink())
             backend = subprocess.run([str(project / 'bin/backend')], env=env, check=True, capture_output=True, text=True)
             self.assertEqual(backend.stdout.strip(), 'backend launched')
+
+    def test_uninstall_removes_only_app_integration_and_runtime(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            base = Path(temporary)
+            project = base / 'plugin'
+            for relative in ('bin/uninstall', 'bin/omarchy-bandcamp',
+                             'share/applications/omarchy-bandcamp.desktop', 'assets/bandcamp.svg'):
+                target = project / relative
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if (ROOT / relative).exists():
+                    shutil.copy2(ROOT / relative, target)
+            home = base / 'home'
+            data = home / 'data'
+            command = home / '.local/bin/omarchy-bandcamp'
+            desktop = data / 'applications/omarchy-bandcamp.desktop'
+            icon = data / 'icons/hicolor/scalable/apps/omarchy-bandcamp.svg'
+            runtime = data / 'omarchy-bandcamp/venv'
+            for path in (command, desktop, icon, runtime / 'bin/python'):
+                path.parent.mkdir(parents=True, exist_ok=True)
+            command.symlink_to(project / 'bin/omarchy-bandcamp')
+            shutil.copy2(project / 'share/applications/omarchy-bandcamp.desktop', desktop)
+            icon.symlink_to(project / 'assets/bandcamp.svg')
+            (runtime / 'pyvenv.cfg').write_text('home = /usr/bin\n')
+            (runtime / 'bin/python').write_text('stub')
+            settings = home / '.config/omarchy-bandcamp/config.json'
+            settings.parent.mkdir(parents=True)
+            settings.write_text('{}')
+            env = {**os.environ, 'HOME': str(home), 'XDG_DATA_HOME': str(data)}
+            subprocess.run([str(project / 'bin/uninstall')], env=env, check=True, capture_output=True, text=True)
+            self.assertFalse(command.exists())
+            self.assertFalse(desktop.exists())
+            self.assertFalse(icon.exists())
+            self.assertFalse(runtime.exists())
+            self.assertTrue(settings.exists())

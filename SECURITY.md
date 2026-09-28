@@ -1,5 +1,7 @@
-# Security
+# Security policy
 
-Please use GitHub private vulnerability reporting for this repository, or contact the maintainer privately. Do not post credentials, signed stream URLs, or other users' collection data in public issues. Rotate any credential disclosed by accident.
+Please report security issues privately through GitHub's **Report a vulnerability** option for this repository. If that option is unavailable, open a minimal issue asking for a private contact method without sharing exploit details or credentials.
 
-The player stores generated Subsonic credentials in the desktop Secret Service when Remember login is enabled. The JSON preferences file and cache never contain passwords or signed playback URLs. Bandcamp and MusicBrainz network requests occur only for the features described in the README.
+Do not post Subsonic credentials, session tokens, private collection exports, or unredacted logs in public issues. Reports involving remembered login, local files, external URLs, playlist writes or dependency supply chain are especially useful. Include affected version, reproduction steps, expected impact, and any safe proof of concept. Maintainers will assess and coordinate a fix before public disclosure.
+
+Security fixes are supported for the latest released version. This project depends on Bandcamp's beta Subsonic service; service-side problems should also be reported to Bandcamp.

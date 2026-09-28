@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "killgallic.bandcamp",
   "name": "Omarchy Bandcamp",
-  "version": "0.3.0",
+  "version": "1.0.0",
   "author": "killgallic",
   "license": "MIT",
   "description": "Your Bandcamp collection in a native player.",

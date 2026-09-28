@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+project_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
+data_dir="${XDG_DATA_HOME:-$HOME/.local/share}"
+launcher="$HOME/.local/bin/omarchy-bandcamp"
+desktop="$data_dir/applications/omarchy-bandcamp.desktop"
+icon="$data_dir/icons/hicolor/scalable/apps/omarchy-bandcamp.svg"
+runtime="$data_dir/omarchy-bandcamp/venv"
+
+if [[ -L "$launcher" && "$(readlink -f -- "$launcher")" == "$project_dir/bin/omarchy-bandcamp" ]]; then
+  rm -f -- "$launcher"
+fi
+if [[ -f "$desktop" ]] && cmp -s -- "$project_dir/share/applications/omarchy-bandcamp.desktop" "$desktop"; then
+  rm -f -- "$desktop"
+fi
+if [[ -L "$icon" && "$(readlink -f -- "$icon")" == "$project_dir/assets/bandcamp.svg" ]]; then
+  rm -f -- "$icon"
+fi
+if [[ -f "$runtime/pyvenv.cfg" ]]; then
+  rm -rf -- "$runtime"
+fi
+
+printf '%s\n' 'App launcher and runtime removed. Your settings, cache, playlists, and saved login were kept.'
+printf '%s\n' 'To remove the plugin source as well, run: omarchy plugin remove killgallic.bandcamp'

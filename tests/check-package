@@ -1,19 +1,37 @@
 #!/usr/bin/env python3
-"""Small public-source packaging gate; no personal data read."""
+"""Validate the tracked source tree and the archive Omarchy will install."""
+import io
 import json
 import os
 from pathlib import Path
+import shutil
+import subprocess
+import tarfile
+import tempfile
+import tomllib
 root = Path(__file__).resolve().parents[1]
 manifest = json.loads((root/'manifest.json').read_text())
-project = (root/'pyproject.toml').read_text()
-assert manifest['version'] in project
+project = tomllib.loads((root/'pyproject.toml').read_text())
+assert manifest['version'] == project['project']['version']
 assert manifest['id'] and '.' in manifest['id']
-for path in [*manifest['entryPoints'].values(), 'bin/backend','bin/setup','bin/omarchy-bandcamp','share/applications/omarchy-bandcamp.desktop','assets/bandcamp.svg','README.md','LICENSE','uv.lock']:
+for path in [*manifest['entryPoints'].values(), 'bin/backend','bin/setup','bin/uninstall','bin/omarchy-bandcamp','share/applications/omarchy-bandcamp.desktop','assets/bandcamp.svg','README.md','LICENSE','uv.lock']:
     assert (root/path).is_file(), path
-for path in ['bin/backend','bin/setup','bin/omarchy-bandcamp']:
+for path in ['bin/backend','bin/setup','bin/uninstall','bin/omarchy-bandcamp']:
     assert os.access(root/path, os.X_OK), path
-tracked = os.popen('git ls-files').read().splitlines()
+subprocess.run(['bash', '-n', 'bin/backend', 'bin/setup', 'bin/uninstall', 'bin/omarchy-bandcamp', 'tests/run-python'], cwd=root, check=True)
+if shutil.which('desktop-file-validate'):
+    subprocess.run(['desktop-file-validate', 'share/applications/omarchy-bandcamp.desktop'], cwd=root, check=True)
+tracked = subprocess.run(['git', 'ls-files'], cwd=root, check=True, capture_output=True, text=True).stdout.splitlines()
 for path in tracked:
     assert not any(part in Path(path).parts for part in ('.venv','.cache','__pycache__'))
     assert not path.endswith(('.png','.jpg','.jpeg')) or path.startswith('assets/'), path
-print('Package manifest and clean-source checks passed.')
+archive = subprocess.run(['git', 'archive', '--format=tar', 'HEAD'], cwd=root, check=True, capture_output=True).stdout
+with tarfile.open(fileobj=io.BytesIO(archive)) as source, tempfile.TemporaryDirectory() as temporary:
+    members = source.getmembers()
+    assert all(not member.issym() and not member.islnk() for member in members), 'Plugin archive contains symlinks'
+    assert all('..' not in Path(member.name).parts for member in members), 'Plugin archive contains unsafe paths'
+    source.extractall(temporary)
+    if shutil.which('omarchy'):
+        subprocess.run(['omarchy', 'plugin', 'validate', temporary], check=True)
+        print('Omarchy plugin validation passed on the source archive.')
+print('Package manifest, source archive, and clean-source checks passed.')
