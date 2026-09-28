@@ -10,6 +10,13 @@ import tarfile
 import tempfile
 import tomllib
 root = Path(__file__).resolve().parents[1]
+def git_output(*arguments, text=False):
+    result = subprocess.run(['git', *arguments], cwd=root, capture_output=True, text=text)
+    if result.returncode:
+        error = result.stderr if text else result.stderr.decode(errors='replace')
+        raise RuntimeError(f"git {' '.join(arguments)} failed: {error.strip()}")
+    return result.stdout
+
 manifest = json.loads((root/'manifest.json').read_text())
 project = tomllib.loads((root/'pyproject.toml').read_text())
 assert manifest['version'] == project['project']['version']
@@ -21,11 +28,11 @@ for path in ['bin/backend','bin/setup','bin/uninstall','bin/omarchy-bandcamp']:
 subprocess.run(['bash', '-n', 'bin/backend', 'bin/setup', 'bin/uninstall', 'bin/omarchy-bandcamp', 'tests/run-python'], cwd=root, check=True)
 if shutil.which('desktop-file-validate'):
     subprocess.run(['desktop-file-validate', 'share/applications/omarchy-bandcamp.desktop'], cwd=root, check=True)
-tracked = subprocess.run(['git', 'ls-files'], cwd=root, check=True, capture_output=True, text=True).stdout.splitlines()
+tracked = git_output('ls-files', text=True).splitlines()
 for path in tracked:
     assert not any(part in Path(path).parts for part in ('.venv','.cache','__pycache__'))
     assert not path.endswith(('.png','.jpg','.jpeg')) or path.startswith('assets/'), path
-archive = subprocess.run(['git', 'archive', '--format=tar', 'HEAD'], cwd=root, check=True, capture_output=True).stdout
+archive = git_output('archive', '--format=tar', 'HEAD')
 with tarfile.open(fileobj=io.BytesIO(archive)) as source, tempfile.TemporaryDirectory() as temporary:
     members = source.getmembers()
     assert all(not member.issym() and not member.islnk() for member in members), 'Plugin archive contains symlinks'

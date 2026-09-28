@@ -24,6 +24,8 @@ jobs:
           ref: f814639556592cb78b0a96d99cdcff60cdfd9403
           path: .omarchy-validation
           persist-credentials: false
+      - name: Trust the checked-out workspace in the container
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Install locked Python dependencies
         run: uv sync --frozen
       - name: Python and playback checks
