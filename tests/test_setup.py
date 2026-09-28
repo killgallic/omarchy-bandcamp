@@ -75,10 +75,18 @@ chmod +x "$target/bin/python"
             settings = home / '.config/omarchy-bandcamp/config.json'
             settings.parent.mkdir(parents=True)
             settings.write_text('{}')
-            env = {**os.environ, 'HOME': str(home), 'XDG_DATA_HOME': str(data)}
+            commands = base / 'commands'
+            commands.mkdir()
+            (commands / 'cmp').write_text('#!/bin/sh\nexit 127\n')
+            (commands / 'cmp').chmod(0o755)
+            env = {**os.environ, 'HOME': str(home), 'XDG_DATA_HOME': str(data),
+                   'PATH': str(commands) + os.pathsep + os.environ['PATH']}
             subprocess.run([str(project / 'bin/uninstall')], env=env, check=True, capture_output=True, text=True)
             self.assertFalse(command.exists())
             self.assertFalse(desktop.exists())
             self.assertFalse(icon.exists())
             self.assertFalse(runtime.exists())
             self.assertTrue(settings.exists())
+            desktop.write_text('[Desktop Entry]\nName=My custom launcher\n')
+            subprocess.run([str(project / 'bin/uninstall')], env=env, check=True, capture_output=True, text=True)
+            self.assertTrue(desktop.exists())

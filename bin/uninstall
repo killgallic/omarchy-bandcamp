@@ -11,7 +11,7 @@ runtime="$data_dir/omarchy-bandcamp/venv"
 if [[ -L "$launcher" && "$(readlink -f -- "$launcher")" == "$project_dir/bin/omarchy-bandcamp" ]]; then
   rm -f -- "$launcher"
 fi
-if [[ -f "$desktop" ]] && cmp -s -- "$project_dir/share/applications/omarchy-bandcamp.desktop" "$desktop"; then
+if [[ -f "$desktop" && "$(< "$project_dir/share/applications/omarchy-bandcamp.desktop")" == "$(< "$desktop")" ]]; then
   rm -f -- "$desktop"
 fi
 if [[ -L "$icon" && "$(readlink -f -- "$icon")" == "$project_dir/assets/bandcamp.svg" ]]; then
