@@ -16,9 +16,9 @@ jobs:
     steps:
       - name: Install system dependencies
         run: pacman -Syu --noconfirm git jq python uv mpv dbus qt6-declarative desktop-file-utils
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Fetch pinned Omarchy validator
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           repository: omacom/omarchy
           ref: f814639556592cb78b0a96d99cdcff60cdfd9403
